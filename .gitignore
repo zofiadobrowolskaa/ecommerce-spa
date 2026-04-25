@@ -1,0 +1,15 @@
+# ignore environment variables
+.env
+
+# ignore node_modules globally and in backend microservices
+node_modules/
+backend/*/node_modules/
+
+# ignore log files
+*.log
+npm-debug.log*
+
+# ignore OS and editor specific files
+.DS_Store
+.vscode/
+.idea/

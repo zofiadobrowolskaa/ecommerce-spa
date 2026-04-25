@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5432:5432"
+
+  mongodb:
+    image: mongo:6
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "27017:27017"
+
+  api-gateway:
+    build: ./backend/api-gateway
+    ports:
+      - "${API_GATEWAY_PORT}:3000"
+    environment:
+      - PORT=3000
+
+  pg-service:
+    build: ./backend/inventory-order-service
+    ports:
+      - "${INVENTORY_SERVICE_PORT}:3001"
+    environment:
+      - PORT=3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  mongo-service:
+    build: ./backend/catalog-analytics-service
+    ports:
+      - "${CATALOG_SERVICE_PORT}:3002"
+    environment:
+      - PORT=3002
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "${FRONTEND_PORT}:5173"
