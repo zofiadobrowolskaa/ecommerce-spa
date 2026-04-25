@@ -1,0 +1,26 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// order header model
+model Order {
+  id        Int         @id @default(autoincrement())
+  status    String      @default("PENDING")
+  lines     OrderLine[]
+  createdAt DateTime    @default(now())
+}
+
+// order items with price snapshot
+model OrderLine {
+  id        Int     @id @default(autoincrement())
+  orderId   Int
+  order     Order   @relation(fields: [orderId], references: [id])
+  sku       String
+  price     Decimal @db.Decimal(10, 2) // price snapshot
+  quantity  Int
+}
