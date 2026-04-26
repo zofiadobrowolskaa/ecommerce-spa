@@ -1,13 +1,76 @@
 const express = require('express');
+const axios = require('axios');
 const app = express();
-const PORT = process.env.PORT || 3000;
+app.use(express.json());
 
-// simple healthcheck endpoint
+// simple healthcheck endpoint 
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', service: 'api-gateway' });
 });
 
-app.listen(PORT, () => {
-  // log service start
-  console.log(`api gateway listening on port ${PORT}`);
+// service urls from docker network
+const INVENTORY_SERVICE = 'http://pg-service:3001';
+const CATALOG_SERVICE = 'http://mongo-service:3002';
+
+// hybrid product creation with compensation (saga)
+app.post('/api/products', async (req, res) => {
+  const { name, sku, price, category_id, long_description, specs } = req.body;
+  let createdProductId = null;
+
+  try {
+    // step 1: save main data to postgres
+    const pgRes = await axios.post(`${INVENTORY_SERVICE}/internal/products`, {
+      name, sku, price, category_id
+    });
+    createdProductId = pgRes.data.id;
+
+    // step 2: save extended details to mongodb
+    await axios.post(`${CATALOG_SERVICE}/internal/product-details`, {
+      productId: createdProductId,
+      longDescription: long_description,
+      specs
+    });
+
+    res.status(201).json({ id: createdProductId, message: 'product created in both dbs' });
+  } catch (error) {
+    // compensation logic if second save fails
+    if (createdProductId) {
+      // rollback: delete from postgres
+      await axios.delete(`${INVENTORY_SERVICE}/internal/products/${createdProductId}`);
+    }
+    
+    // standardized error format
+    res.status(error.response?.status || 500).json({
+      error: 'hybrid_transaction_failed',
+      code: 500,
+      details: error.response?.data || error.message
+    });
+  }
 });
+
+// routing for catalog and cart
+app.get('/api/products', (req, res) => {
+  // forward filtering to inventory service
+  const params = new URLSearchParams(req.query).toString();
+  axios.get(`${INVENTORY_SERVICE}/products?${params}`)
+    .then(r => res.json(r.data)).catch(e => res.status(500).send(e.message));
+});
+
+// checkout proxy with hybrid event
+app.post('/api/checkout', async (req, res) => {
+  try {
+    const pgRes = await axios.post(`${INVENTORY_SERVICE}/checkout`, req.body);
+    // log completion event to mongo after successful pg checkout
+    await axios.post(`${CATALOG_SERVICE}/telemetry/event`, {
+      action: 'completed',
+      userId: req.body.userId,
+      details: { orderId: pgRes.data.id }
+    });
+    res.json(pgRes.data);
+  } catch (error) {
+    res.status(400).json({ error: 'checkout_failed', details: error.response?.data });
+  }
+});
+
+const PORT = 3000;
+app.listen(PORT, () => console.log(`api gateway listening on port ${PORT}`));
