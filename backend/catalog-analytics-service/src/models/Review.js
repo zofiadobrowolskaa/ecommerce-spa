@@ -25,9 +25,8 @@ const reviewSchema = new mongoose.Schema({
 });
 
 // pre-hook to update modification date
-reviewSchema.pre('save', function(next) {
+reviewSchema.pre('save', function() {
   this.updatedAt = Date.now();
-  next();
 });
 
 module.exports = mongoose.model('Review', reviewSchema);
