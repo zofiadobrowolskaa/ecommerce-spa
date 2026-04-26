@@ -47,6 +47,20 @@ app.patch('/inventory/:sku', async (req, res, next) => {
   }
 });
 
+// internal endpoint for gateway to create product
+app.post('/internal/products', async (req, res, next) => {
+  try {
+    const [id] = await knex('products').insert(req.body).returning('id');
+    res.status(201).json({ id });
+  } catch (err) { next(err); }
+});
+
+// rollback endpoint
+app.delete('/internal/products/:id', async (req, res) => {
+  await knex('products').where('id', req.params.id).del();
+  res.sendStatus(204);
+});
+
 app.use(pgErrorMap);
 
 const PORT = process.env.PORT || 3001;
