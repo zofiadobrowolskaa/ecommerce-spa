@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useMemo, useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
 import useLocalStorage from '../hooks/useLocalStorage';
 import initialProducts from '../data/products.json';
 import { authService } from '../auth/authService';
@@ -31,7 +32,10 @@ const defaultProfile = {
 export const AppProvider = ({ children }) => {
 
   const [products, setProducts] = useLocalStorage('products', initialProducts);
-  const [cart, setCart] = useLocalStorage('cart', []);
+  
+  // server-side cart state replacing local storage
+  const [cart, setCart] = useState([]);
+  
   const [userRole, setUserRole] = useLocalStorage('userRole', 'client'); 
   const [discount, setDiscount] = useLocalStorage('discount', { code: '', percentage: 0 });
   const [orders, setOrders] = useLocalStorage('orders', [])
@@ -70,26 +74,48 @@ export const AppProvider = ({ children }) => {
   const cartTotal = useMemo(() => calculateCartTotal(cart, products), [cart, products]);
   const discountValue = useMemo(() => cartTotal * discount.percentage, [cartTotal, discount]);
 
+  // sync function to push cart state to api gateway
+  const syncCartWithServer = useCallback(async (newCart) => {
+    setCart(newCart);
+    try {
+      // transform frontend cart format into backend payload
+      const items = newCart.map(item => {
+        const product = products.find(p => p.id === item.productId);
+        const variant = product?.variants?.find(v => v.id === item.variantId);
+        const price = (product?.price || 0) + (variant?.priceAdjustment || 0);
+        return { productId: item.productId, quantity: item.quantity, price };
+      });
+      
+      const userId = user?.email || 'u1'; // fallback to u1 for testing
+      await axios.post(`http://localhost:3000/api/cart/${userId}/sync`, { items });
+    } catch (error) {
+      console.error('failed to sync cart with server', error);
+    }
+  }, [products, user]);
+
+  // modified cart functions to trigger server sync
   const addToCart = useCallback((productId, variantId, quantity = 1, size = null) => {
-    setCart(prev => {
-      const idx = prev.findIndex(item => item.productId === productId && item.variantId === variantId && item.size === size);
-      if (idx > -1) {
-        const copy = [...prev];
-        copy[idx].quantity += quantity;
-        return copy;
-      }
-      return [...prev, { productId, variantId, quantity, size }];
-    });
-  }, [setCart]);
+    const idx = cart.findIndex(item => item.productId === productId && item.variantId === variantId && item.size === size);
+    let newCart;
+    if (idx > -1) {
+      newCart = [...cart];
+      newCart[idx].quantity += quantity;
+    } else {
+      newCart = [...cart, { productId, variantId, quantity, size }];
+    }
+    syncCartWithServer(newCart);
+  }, [cart, syncCartWithServer]);
 
   const removeFromCart = useCallback((productId, variantId, size = null) => {
-    setCart(prev => prev.filter(item => !(item.productId === productId && item.variantId === variantId && item.size === size)));
-  }, [setCart]);
+    const newCart = cart.filter(item => !(item.productId === productId && item.variantId === variantId && item.size === size));
+    syncCartWithServer(newCart);
+  }, [cart, syncCartWithServer]);
 
   const updateQuantity = useCallback((productId, variantId, newQuantity, size = null) => {
     if (newQuantity <= 0) return removeFromCart(productId, variantId, size);
-    setCart(prev => prev.map(item => (item.productId === productId && item.variantId === variantId && item.size === size) ? { ...item, quantity: newQuantity } : item));
-  }, [setCart, removeFromCart]);
+    const newCart = cart.map(item => (item.productId === productId && item.variantId === variantId && item.size === size) ? { ...item, quantity: newQuantity } : item);
+    syncCartWithServer(newCart);
+  }, [cart, removeFromCart, syncCartWithServer]);
 
   const applyDiscount = useCallback((code) => {
     if (code === 'AURA20') {
@@ -101,6 +127,7 @@ export const AppProvider = ({ children }) => {
   
   const resetDiscount = useCallback(() => setDiscount({ code: '', percentage: 0 }), [setDiscount]);
 
+  // place order clears the cart and pushes empty state to server
   const placeOrder = useCallback((orderData) => {
     const newOrder = {
       id: `ORD-${Date.now()}`,
@@ -111,10 +138,10 @@ export const AppProvider = ({ children }) => {
       status: 'Completed',
     };
     setOrders(prev => [newOrder, ...prev]);
-    setCart([]);
+    syncCartWithServer([]); // clear server cart
     resetDiscount();
     return newOrder.id;
-  }, [cart, cartTotal, discountValue, setOrders, setCart, resetDiscount]);
+  }, [cart, cartTotal, discountValue, setOrders, syncCartWithServer, resetDiscount]);
 
   const removeOrder = useCallback((id) => setOrders(prev => prev.filter(o => o.id !== id)), [setOrders]);
 
@@ -158,9 +185,9 @@ export const AppProvider = ({ children }) => {
     authService.logout();
     setUser(null);
     setProfileState(defaultProfile);
-    setCart([]);
+    syncCartWithServer([]); // clear server cart on logout
     setDiscount({ code: '', percentage: 0 });
-  }, [setCart, setDiscount]);
+  }, [syncCartWithServer, setDiscount]);
 
   const updateProfile = useCallback((updatedData) => {
     try {
@@ -182,11 +209,11 @@ export const AppProvider = ({ children }) => {
   const resetAppData = useCallback(() => {
     localStorage.removeItem('products');
     localStorage.removeItem('orders');
-    localStorage.removeItem('cart');
     localStorage.removeItem('discount');
+    syncCartWithServer([]); // clear server cart
 
     window.location.reload();
-  }, []);
+  }, [syncCartWithServer]);
 
   const contextValue = {
     products, setProducts,
@@ -207,7 +234,6 @@ export const AppProvider = ({ children }) => {
   );
 };
 
-// custom hook to use the context
 export const useAppContext = () => {
   const context = useContext(AppContext)
   if (!context) {

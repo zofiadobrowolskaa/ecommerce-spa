@@ -11,10 +11,12 @@ app.use(express.json());
 
 // simple healthcheck endpoint
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', service: 'api-gateway' });
+  res.status(200).json({ status: 'ok', service: 'inventory-order-service' });
 });
 
-// knex: dynamic filtering endpoint
+// CATALOG (KNEX)
+
+// dynamic filtering endpoint
 app.get('/products', async (req, res) => {
   const { category, maxPrice } = req.query;
   // dynamic where builder
@@ -24,34 +26,6 @@ app.get('/products', async (req, res) => {
   });
   const products = await query;
   res.json(products);
-});
-
-// sequelize: checkout with managed transaction
-app.post('/cart/checkout', async (req, res) => {
-  try {
-    const result = await sequelize.transaction(async (t) => {
-      // business logic inside transaction
-      return { success: true };
-    });
-    res.json(result);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// pg: inventory update with parameterized query
-app.patch('/inventory/:sku', async (req, res, next) => {
-  try {
-    const { quantity } = req.body;
-    // use parameterized query for safety
-    await pgPool.query(
-      'UPDATE products SET stock = stock - $1 WHERE sku = $2',
-      [quantity, req.params.sku]
-    );
-    res.sendStatus(204);
-  } catch (err) {
-    next(err); // pass to pgErrorMap
-  }
 });
 
 // internal endpoint for gateway to create product
@@ -68,26 +42,23 @@ app.delete('/internal/products/:id', async (req, res) => {
   res.sendStatus(204);
 });
 
-// checkout with oversell protection and price snapshot
-app.post('/checkout', async (req, res) => {
-  const { items, userId } = req.body;
-  // start managed transaction
-  const result = await sequelize.transaction(async (t) => {
-    // snapshot logic would use prisma for final order
-    // here we simulate stock check
-    for (const item of items) {
-      const product = await knex('products').where('sku', item.sku).first();
-      if (!product || product.stock < item.quantity) {
-        throw new Error('409_CONFLICT_OVERSELL'); // prevent oversell
-      }
-      // update stock using parameterized pg pool
-      await pgPool.query('UPDATE products SET stock = stock - $1 WHERE sku = $2', [item.quantity, item.sku]);
-    }
-    return { success: true, id: Math.floor(Math.random() * 1000) };
-  }).catch(err => res.status(409).json({ error: err.message }));
-  
-  if (result) res.json(result);
+// INVENTORY (PG DRIVER)
+// native pg driver, parameterized queries ($1, $2)
+app.patch('/inventory/:sku', async (req, res, next) => {
+  try {
+    const { quantity } = req.body;
+    // use parameterized query for safety
+    await pgPool.query(
+      'UPDATE products SET stock = stock - $1 WHERE sku = $2',
+      [quantity, req.params.sku]
+    );
+    res.sendStatus(204);
+  } catch (err) {
+    next(err); // pass to pgErrorMap
+  }
 });
+
+// SERVER-SIDE CART (SEQUELIZE)
 
 // eager loading (include)
 app.get('/cart/:userId', async (req, res) => {
@@ -101,6 +72,110 @@ app.get('/cart/:userId', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// sync cart items to server state
+app.post('/cart/:userId/sync', async (req, res) => {
+  const { items } = req.body;
+  try {
+    // managed transaction
+    await sequelize.transaction(async (t) => {
+      let cart = await Cart.findOne({ where: { userId: req.params.userId, status: 'OPEN' }, transaction: t });
+      if (!cart) cart = await Cart.create({ userId: req.params.userId }, { transaction: t });
+      
+      // clear old state
+      await CartLine.destroy({ where: { CartId: cart.id }, transaction: t });
+      let total = 0;
+      
+      for (const item of items) {
+        total += item.price * item.quantity;
+        // safely extract number from frontend IDs (e.g. "p001" -> 1)
+        const numericId = parseInt(String(item.productId).replace(/\D/g, '')) || 1;
+        
+        await CartLine.create({
+          CartId: cart.id,
+          productId: numericId,
+          quantity: item.quantity,
+          priceAtEntry: item.price // price snapshot in cart
+        }, { transaction: t });
+      }
+      cart.totalPrice = total;
+      await cart.save({ transaction: t });
+    });
+    res.sendStatus(200);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ORDERS AND CHECKOUT SAGA (PRISMA)
+// checkout with lock and oversell protection
+app.post('/checkout', async (req, res) => {
+  const { userId, items } = req.body;
+  try {
+    // prisma interactive transaction quarantees atomicity
+    const order = await prisma.$transaction(async (tx) => {
+      let totalAmount = 0;
+      
+      // oversell check and stock deduction
+      for (const item of items) {
+        const numericId = parseInt(String(item.productId).replace(/\D/g, '')) || 1;
+        
+        // use raw query to lock the row for update to prevent race conditions
+        const [product] = await tx.$queryRaw`SELECT stock, price FROM products WHERE id = ${numericId} FOR UPDATE`;
+        
+        if (!product || product.stock < item.quantity) {
+          throw new Error('409_CONFLICT_OVERSELL');
+        }
+        
+        // reduce stock
+        await tx.$executeRaw`UPDATE products SET stock = stock - ${item.quantity} WHERE id = ${numericId}`;
+        totalAmount += Number(product.price) * item.quantity;
+      }
+
+      // create order and snapshot price
+      const newOrder = await tx.order.create({
+        data: {
+          totalAmount,
+          status: 'PAID',
+          lines: {
+            create: items.map(item => ({
+              productId: parseInt(String(item.productId).replace(/\D/g, '')) || 1,
+              quantity: item.quantity,
+              price: item.price
+            }))
+          }
+        }
+      });
+      
+      // mark cart as closed
+      await Cart.update({ status: 'CLOSED' }, { where: { userId, status: 'OPEN' }});
+      
+      return newOrder;
+    });
+
+    res.status(201).json({ orderId: order.id });
+  } catch (err) {
+    if (err.message.includes('409')) return res.status(409).json({ error: 'conflict_oversell' });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// order cancellation and stock rollback
+app.post('/orders/:id/cancel', async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.id);
+    await prisma.$transaction(async (tx) => {
+      const order = await tx.order.findUnique({ where: { id: orderId }, include: { lines: true } });
+      if (!order) throw new Error('not_found');
+      
+      await tx.order.update({ where: { id: orderId }, data: { status: 'CANCELLED' }});
+      
+      // return stock to inventory
+      for (const line of order.lines) {
+        await tx.$executeRaw`UPDATE products SET stock = stock + ${line.quantity} WHERE id = ${line.productId}`;
+      }
+    });
+    res.sendStatus(200);
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // prisma $queryRaw (tagged template)
@@ -125,6 +200,7 @@ app.get('/analytics/orders-report', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // global error handler
 app.use(pgErrorMap);
