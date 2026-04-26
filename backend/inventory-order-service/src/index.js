@@ -3,6 +3,8 @@ const knex = require('knex')(require('../knexfile').development);
 const { sequelize, Cart, CartLine } = require('./db/sequelize');
 const pgPool = require('./db/pgPool');
 const pgErrorMap = require('./middleware/errorMiddleware');
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 
 const app = express();
 app.use(express.json());
@@ -87,8 +89,48 @@ app.post('/checkout', async (req, res) => {
   if (result) res.json(result);
 });
 
+// eager loading (include)
+app.get('/cart/:userId', async (req, res) => {
+  try {
+    const cart = await Cart.findOne({
+      where: { userId: req.params.userId, status: 'OPEN' },
+      include: [CartLine] // eager loading implementation
+    });
+    if (!cart) return res.status(404).json({ error: 'cart not found' });
+    res.json(cart);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// prisma $queryRaw (tagged template)
+app.get('/analytics/orders-report', async (req, res) => {
+  try {
+    // reporting using raw SQL
+    const report = await prisma.$queryRaw`
+      SELECT 
+        COUNT("id") as "totalOrders", 
+        SUM("totalAmount") as "revenue" 
+      FROM "Order"
+    `;
+
+    // parse BigInt to standard JavaScript Number for JSON serialization
+    const formattedReport = report.map(row => ({
+      totalOrders: Number(row.totalOrders),
+      revenue: Number(row.revenue)
+    }));
+
+    res.json(formattedReport);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // global error handler
 app.use(pgErrorMap);
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`inventory service running on ${PORT}`));
+
+sequelize.sync().then(() => {
+  app.listen(PORT, () => console.log(`inventory service running on port ${PORT}`));
+});
