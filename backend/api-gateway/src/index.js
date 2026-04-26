@@ -12,7 +12,7 @@ app.get('/health', (req, res) => {
 const INVENTORY_SERVICE = 'http://pg-service:3001';
 const CATALOG_SERVICE = 'http://mongo-service:3002';
 
-// hybrid product creation with compensation (saga)
+// hybrid product creation with bulletproof compensation (saga)
 app.post('/api/products', async (req, res) => {
   const { name, sku, price, category_id, long_description, specs } = req.body;
   let createdProductId = null;
@@ -22,7 +22,10 @@ app.post('/api/products', async (req, res) => {
     const pgRes = await axios.post(`${INVENTORY_SERVICE}/internal/products`, {
       name, sku, price, category_id
     });
-    createdProductId = pgRes.data.id;
+    
+    createdProductId = typeof pgRes.data.id === 'object' 
+    ? pgRes.data.id.id 
+    : pgRes.data.id;
 
     // step 2: save extended details to mongodb
     await axios.post(`${CATALOG_SERVICE}/internal/product-details`, {
@@ -31,26 +34,34 @@ app.post('/api/products', async (req, res) => {
       specs
     });
 
-    res.status(201).json({ id: createdProductId, message: 'product created in both dbs' });
+    res.status(201).json({ id: createdProductId, message: 'product created in both databases' });
   } catch (error) {
-    // compensation logic if second save fails
+    let rollbackStatus = 'not_attempted';
+
+    // robust compensation logic if second save fails
     if (createdProductId) {
-      // rollback: delete from postgres
-      await axios.delete(`${INVENTORY_SERVICE}/internal/products/${createdProductId}`);
+      try {
+        // rollback: delete from postgres
+        await axios.delete(`${INVENTORY_SERVICE}/internal/products/${createdProductId}`);
+        rollbackStatus = 'success';
+      } catch (rbError) {
+        rollbackStatus = 'failed';
+        console.error('rollback failed:', rbError.message);
+      }
     }
     
     // standardized error format
     res.status(error.response?.status || 500).json({
       error: 'hybrid_transaction_failed',
       code: 500,
-      details: error.response?.data || error.message
+      details: error.response?.data || error.message,
+      rollback_status: rollbackStatus
     });
   }
 });
 
-// routing for catalog and cart
+// routing for catalog
 app.get('/api/products', (req, res) => {
-  // forward filtering to inventory service
   const params = new URLSearchParams(req.query).toString();
   axios.get(`${INVENTORY_SERVICE}/products?${params}`)
     .then(r => res.json(r.data)).catch(e => res.status(500).send(e.message));

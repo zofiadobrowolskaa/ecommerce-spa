@@ -124,6 +124,17 @@ app.post('/test/setup', async (req, res) => {
   }
 });
 
+// internal endpoint to save product details from gateway
+app.post('/internal/product-details', async (req, res) => {
+  try {
+    const detail = new ProductDetail(req.body);
+    await detail.save();
+    res.status(201).json(detail);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 const PORT = process.env.PORT || 3002;
 
 // init both drivers
