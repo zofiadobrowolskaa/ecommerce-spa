@@ -14,6 +14,6 @@ COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/src ./src
 
-EXPOSE 3000
+EXPOSE 3002
 # start the service
 CMD ["npm", "start"]
