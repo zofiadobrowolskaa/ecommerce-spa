@@ -16,17 +16,22 @@ const reviewSchema = new mongoose.Schema({
     min: [1, 'rating must be at least 1'], 
     max: [5, 'rating cannot exceed 5'] 
   },
-  title: String,
-  body: String,
+  title: { type: String, required: true },
+  body: { type: String, required: true },
   status: { type: String, enum: ['PENDING', 'APPROVED', 'REJECTED'], default: 'PENDING' },
   // nested sub-documents array
   gallery: [reviewImageSchema],
   updatedAt: { type: Date, default: Date.now }
 });
 
-// pre-hook to update modification date
+// pre hook to update modification date
 reviewSchema.pre('save', function() {
   this.updatedAt = Date.now();
 });
+
+// static method
+reviewSchema.statics.findByProduct = function(productId) {
+  return this.find({ productId, status: 'APPROVED' });
+};
 
 module.exports = mongoose.model('Review', reviewSchema);

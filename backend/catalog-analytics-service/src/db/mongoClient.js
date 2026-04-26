@@ -22,6 +22,14 @@ async function connectMongo() {
   return dbInstance;
 }
 
+// helper to get db instance synchronously
+function getDb() {
+  if (!dbInstance) {
+    throw new Error('db not initialized');
+  }
+  return dbInstance;
+}
+
 // graceful shutdown on sigint
 process.on('SIGINT', async () => {
   console.log('sigint received: closing mongodb connection');
@@ -29,4 +37,4 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
-module.exports = { connectMongo, client };
+module.exports = { connectMongo, getDb, client };
