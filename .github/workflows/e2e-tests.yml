@@ -1,9 +1,9 @@
-# req 13: isolated ci test environment with a dedicated database container
+# isolated ci test environment
 name: E2E Critical Path Tests
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "feature/step-5-security-docs-tests" ]
   pull_request:
     branches: [ "main" ]
 
@@ -11,29 +11,30 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
-    # isolated db container spun up exclusively for tests
-    services:
-      test-db:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_USER: user
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: ecommerce_test
-        ports:
-          - 5432:5432
-
     steps:
     - uses: actions/checkout@v3
     
-    - name: Use Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '20.x'
-        
-    - name: Install dependencies
-      working-directory: ./backend/api-gateway
-      run: npm install
+    # step 1: start the entire microservices stack using our compose file
+    - name: Start Docker Compose Stack
+      # forces the project name to 'spa' so container names match our local environment
+      run: docker compose -p spa up -d --build
       
+    # step 2: wait for api gateway to be fully ready
+    - name: Wait for API Gateway
+      run: |
+        echo "waiting for gateway..."
+        for i in {1..30}; do
+          curl -fsS http://localhost:3000/health && exit 0
+          sleep 2
+        done
+        echo "gateway failed to start"
+        docker compose logs
+        exit 1
+
+    # step 3: give knex a few seconds to finish migrating and seeding products in pg-service
+    - name: Wait for database migrations and seeds
+      run: sleep 15
+        
+    # step 4: execute the supertest suite directly inside the gateway container
     - name: Run Supertest E2E Suite
-      working-directory: ./backend/api-gateway
-      run: npm run test:e2e
+      run: docker exec spa-api-gateway-1 npm run test:e2e
