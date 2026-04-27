@@ -3,7 +3,7 @@ name: E2E Critical Path Tests
 
 on:
   push:
-    branches: [ "main", "feature/step-5-security-docs-tests" ]
+    branches: [ "main", "feature/security-docs-tests" ]
   pull_request:
     branches: [ "main" ]
 
@@ -43,12 +43,12 @@ jobs:
       
     # step 3: wait for api gateway to be fully ready
     # using healthcheck endpoint to ensure stability before tests
-    # note: check is executed inside container to avoid host/Docker networking issues
+    # NOTE: check is executed from GitHub runner (host) via exposed port (docker port mapping)
     - name: Wait for API Gateway
       run: |
-        echo "waiting for gateway (inside compose network)..."
+        echo "waiting for gateway..."
         for i in {1..30}; do
-          docker exec spa-api-gateway-1 curl -fsS http://127.0.0.1:3000/health && exit 0
+          curl -fsS http://127.0.0.1:3000/health && exit 0
           sleep 2
         done
         echo "gateway failed to start"
@@ -61,6 +61,6 @@ jobs:
         
     # step 5: execute the supertest suite directly inside the gateway container
     # e2e testing of critical paths
-    # note: explicitly set API_URL to container localhost to avoid DNS issues
+    # NOTE: explicitly set API_URL to container localhost to avoid DNS issues
     - name: Run Supertest E2E Suite
       run: docker exec -e API_URL=http://127.0.0.1:3000 spa-api-gateway-1 npm run test:e2e
