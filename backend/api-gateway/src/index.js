@@ -34,7 +34,7 @@ const handleError = (res, err, defaultError = 'gateway_error') => {
   res.status(err.response?.status || 500).json({
     error: defaultError,
     code: err.response?.status || 500,
-    details: err.response?.data || err.message
+    details: err.response?.data || 'an unexpected error occurred'
   });
 };
 
@@ -54,7 +54,8 @@ app.post('/api/products', validate(productSchema), async (req, res) => {
       name,
       sku,
       price,
-      category_id
+      category_id,
+      stock: 0
     });
 
     // handle different response shapes (id can be nested or primitive)
@@ -65,8 +66,9 @@ app.post('/api/products', validate(productSchema), async (req, res) => {
 
     // step 2: save product details to mongo (catalog service)
     await axios.post(`${CATALOG_SERVICE}/internal/product-details`, {
-      productId: createdProductId,
+      productId: createdProductId, 
       longDescription: long_description,
+      long_description: long_description, 
       specs
     });
 
