@@ -59,13 +59,23 @@ jobs:
     - name: Wait for database migrations and seeds
       run: sleep 10
 
-    # step 5: synchronize Prisma schemas and inject test product
+    # step 5: safely inject schemas and test data without triggering ORM conflicts
     - name: Prepare Test Database State
       run: |
-        # Dynamically push schema to create Order and OrderLine tables securely
-        docker exec spa-pg-service-1 npx prisma db push
-        
         cat << 'EOF' > prep.sql
+        CREATE TABLE IF NOT EXISTS "Order" (
+          "id" SERIAL PRIMARY KEY,
+          "totalAmount" DECIMAL(10,2) NOT NULL,
+          "status" TEXT DEFAULT 'PENDING',
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS "OrderLine" (
+          "id" SERIAL PRIMARY KEY,
+          "orderId" INTEGER NOT NULL REFERENCES "Order"("id") ON DELETE CASCADE,
+          "sku" TEXT NOT NULL,
+          "price" DECIMAL(10,2) NOT NULL,
+          "quantity" INTEGER NOT NULL
+        );
         INSERT INTO categories (id, name) VALUES (1, 'Test Category') ON CONFLICT (id) DO NOTHING;
         INSERT INTO products (id, name, sku, price, stock, category_id) VALUES (1, 'Test Product', 'TEST-1', 120.00, 100, 1) ON CONFLICT (id) DO UPDATE SET stock = 100;
         EOF
