@@ -14,7 +14,8 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    # step 1: generate a dummy .env file for CI so databases can start securely
+    # step 1: generate a complete .env file for CI
+    # providing necessary env vars for orchestration and security
     - name: Create .env file for CI
       run: |
         echo "POSTGRES_USER=user" >> .env
@@ -24,8 +25,14 @@ jobs:
         echo "MONGO_INITDB_ROOT_USERNAME=admin" >> .env
         echo "MONGO_INITDB_ROOT_PASSWORD=password" >> .env
         echo "MONGO_URI=mongodb://admin:password@mongodb:27017/admin" >> .env
+        
+        # required for docker-compose port mappings
+        echo "API_GATEWAY_PORT=3000" >> .env
+        echo "INVENTORY_SERVICE_PORT=3001" >> .env
+        echo "CATALOG_SERVICE_PORT=3002" >> .env
+        echo "FRONTEND_PORT=5173" >> .env
 
-    # step 2: start the entire microservices stack with fail-safe logging
+    # step 2: start the entire microservices stack
     - name: Start Docker Compose Stack
       run: |
         docker compose -p spa up -d --build || (
@@ -35,6 +42,7 @@ jobs:
         )
       
     # step 3: wait for api gateway to be fully ready
+    # using healthcheck endpoint to ensure stability before tests
     - name: Wait for API Gateway
       run: |
         echo "waiting for gateway..."
@@ -46,10 +54,11 @@ jobs:
         docker compose -p spa logs
         exit 1
 
-    # step 4: give knex a few seconds to finish migrating and seeding products
+    # step 4: wait for database migrations and seeds to finish
     - name: Wait for database migrations and seeds
       run: sleep 15
         
     # step 5: execute the supertest suite directly inside the gateway container
+    # e2e testing of critical paths
     - name: Run Supertest E2E Suite
       run: docker exec spa-api-gateway-1 npm run test:e2e
