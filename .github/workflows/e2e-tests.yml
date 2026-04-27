@@ -1,0 +1,90 @@
+# isolated ci test environment
+name: E2E Critical Path Tests
+
+on:
+  push:
+    branches: [ "main", "feature/security-docs-tests" ] 
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    # step 1: generate a complete .env file for CI
+    # providing necessary env vars for orchestration and security
+    - name: Create .env file for CI
+      run: |
+        echo "POSTGRES_USER=user" >> .env
+        echo "POSTGRES_PASSWORD=password" >> .env
+        echo "POSTGRES_DB=ecommerce_db" >> .env
+        echo "DATABASE_URL=postgresql://user:password@postgres:5432/ecommerce_db" >> .env
+        echo "MONGO_INITDB_ROOT_USERNAME=admin" >> .env
+        echo "MONGO_INITDB_ROOT_PASSWORD=password" >> .env
+        echo "MONGO_URI=mongodb://admin:password@mongodb:27017/admin" >> .env
+        
+        # required for docker-compose port mappings
+        echo "API_GATEWAY_PORT=3000" >> .env
+        echo "INVENTORY_SERVICE_PORT=3001" >> .env
+        echo "CATALOG_SERVICE_PORT=3002" >> .env
+        echo "FRONTEND_PORT=5173" >> .env
+
+    # step 2: start the entire microservices stack
+    - name: Start Docker Compose Stack
+      run: |
+        docker compose -p spa up -d --build || (
+          echo "Compose failed. Printing logs..."
+          docker compose -p spa logs
+          exit 1
+        )
+      
+    # step 3: wait for api gateway to be fully ready
+    # using healthcheck endpoint to ensure stability before tests
+    # NOTE: check is executed from GitHub runner (host) via exposed port (docker port mapping)
+    - name: Wait for API Gateway
+      run: |
+        echo "waiting for gateway..."
+        for i in {1..30}; do
+          curl -fsS http://127.0.0.1:3000/health && exit 0
+          sleep 2
+        done
+        echo "gateway failed to start"
+        docker compose -p spa logs
+        exit 1
+
+    # step 4: wait for database migrations and seeds to finish
+    - name: Wait for database migrations and seeds
+      run: sleep 10
+
+    # step 5: safely inject schemas and test data without triggering ORM conflicts
+    - name: Prepare Test Database State
+      run: |
+        cat << 'EOF' > prep.sql
+        CREATE TABLE IF NOT EXISTS "Order" (
+          "id" SERIAL PRIMARY KEY,
+          "totalAmount" DECIMAL(10,2) NOT NULL,
+          "status" TEXT DEFAULT 'PENDING',
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS "OrderLine" (
+          "id" SERIAL PRIMARY KEY,
+          "orderId" INTEGER NOT NULL REFERENCES "Order"("id") ON DELETE CASCADE,
+          "sku" TEXT NOT NULL,
+          "price" DECIMAL(10,2) NOT NULL,
+          "quantity" INTEGER NOT NULL
+        );
+        INSERT INTO categories (id, name) VALUES (1, 'Test Category') ON CONFLICT (id) DO NOTHING;
+        INSERT INTO products (id, name, sku, price, stock, category_id) VALUES (1, 'Test Product', 'TEST-1', 120.00, 100, 1) ON CONFLICT (id) DO UPDATE SET stock = 100;
+        
+        -- resynchronize the auto-increment counters so the database doesn't attempt to reuse ID=1
+        SELECT setval(pg_get_serial_sequence('categories', 'id'), (SELECT MAX(id) FROM categories));
+        SELECT setval(pg_get_serial_sequence('products', 'id'), (SELECT MAX(id) FROM products));
+        EOF
+        docker exec -i spa-postgres-1 psql -U user -d ecommerce_db < prep.sql
+
+    # step 6: execute the supertest suite
+    - name: Run Supertest E2E Suite
+      run: docker exec -e API_URL=http://127.0.0.1:3000 spa-api-gateway-1 npm run test:e2e

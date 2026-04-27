@@ -1,5 +1,9 @@
 const express = require('express');
 const axios = require('axios');
+const swaggerUi = require('swagger-ui-express');
+const swaggerDocument = require('./swaggerDocs');
+const { validate, productSchema, cartSyncSchema, checkoutSchema } = require('./validators');
+
 const app = express();
 
 // allow CORS for frontend communication
@@ -18,6 +22,9 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', service: 'api-gateway' });
 });
 
+// mount openapi swagger ui
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
 // service urls from docker network
 const INVENTORY_SERVICE = 'http://pg-service:3001';
 const CATALOG_SERVICE = 'http://mongo-service:3002';
@@ -27,41 +34,71 @@ const handleError = (res, err, defaultError = 'gateway_error') => {
   res.status(err.response?.status || 500).json({
     error: defaultError,
     code: err.response?.status || 500,
-    details: err.response?.data || err.message
+    details: err.response?.data || 'an unexpected error occurred'
   });
 };
 
+// PRODUCTS HYBRID SAGA 
+
 // hybrid product creation saga with compensation
-app.post('/api/products', async (req, res) => {
+// applied input validation using zod
+app.post('/api/products', validate(productSchema), async (req, res) => {
   const { name, sku, price, category_id, long_description, specs } = req.body;
+
+  // will store ID of product created in postgres (needed for step 2 and rollback)
   let createdProductId = null;
 
   try {
-    // step 1: save to postgres
-    const pgRes = await axios.post(`${INVENTORY_SERVICE}/internal/products`, { name, sku, price, category_id });
-    createdProductId = typeof pgRes.data.id === 'object' ? pgRes.data.id.id : pgRes.data.id;
-
-    // step 2: save details to mongo
-    await axios.post(`${CATALOG_SERVICE}/internal/product-details`, {
-      productId: createdProductId, longDescription: long_description, specs
+    // step 1: save base product data to postgres (inventory service)
+    const pgRes = await axios.post(`${INVENTORY_SERVICE}/internal/products`, {
+      name,
+      sku,
+      price,
+      category_id,
+      stock: 0
     });
 
-    res.status(201).json({ id: createdProductId, message: 'product created in both databases' });
+    // handle different response shapes (id can be nested or primitive)
+    createdProductId =
+      typeof pgRes.data.id === 'object'
+        ? pgRes.data.id.id
+        : pgRes.data.id;
+
+    // step 2: save product details to mongo (catalog service)
+    await axios.post(`${CATALOG_SERVICE}/internal/product-details`, {
+      productId: createdProductId, 
+      longDescription: long_description,
+      long_description: long_description, 
+      specs
+    });
+
+    // success: both operations completed
+    res.status(201).json({
+      id: createdProductId,
+      message: 'product created in both databases'
+    });
+
   } catch (error) {
+    // track rollback attempt status for observability/debugging
     let rollbackStatus = 'not_attempted';
-    
-    // compensation: delete from postgres if mongo fails
+
+    // compensation: if step 2 fails, remove product from postgres
     if (createdProductId) {
       try {
         await axios.delete(`${INVENTORY_SERVICE}/internal/products/${createdProductId}`);
         rollbackStatus = 'success';
-      } catch (rbError) { 
-        rollbackStatus = 'failed'; 
+      } catch (rbError) {
+        // rollback failure should be visible (system is now inconsistent)
+        rollbackStatus = 'failed';
       }
     }
-    
+
+    // return error with rollback status (important for monitoring & retries)
     res.status(500).json({
-      error: 'hybrid_transaction_failed', code: 500, details: error.message, rollback_status: rollbackStatus
+      error: 'hybrid_transaction_failed',
+      code: 500,
+      details: error.message,
+      rollback_status: rollbackStatus
     });
   }
 });
@@ -72,57 +109,97 @@ app.get('/api/products', (req, res) => {
   axios.get(`${INVENTORY_SERVICE}/products?${params}`).then(r => res.json(r.data)).catch(e => handleError(res, e));
 });
 
+// SERVER-SIDE CART
+
 // get server cart state
 app.get('/api/cart/:userId', async (req, res) => {
   try {
+    // fetch cart from inventory service (source of truth)
     const r = await axios.get(`${INVENTORY_SERVICE}/cart/${req.params.userId}`);
     res.json(r.data);
   } catch (e) {
-    if (e.response?.status === 404) return res.json({ lines: [], totalPrice: 0 }); 
+    // if cart does not exist yet, return empty state instead of error
+    if (e.response?.status === 404) {
+      return res.json({ lines: [], totalPrice: 0 });
+    }
+
+    // delegate other errors to centralized handler
     handleError(res, e);
   }
 });
 
 // sync entire cart state from frontend to backend
-app.post('/api/cart/:userId/sync', async (req, res) => {
+// applied validation
+app.post('/api/cart/:userId/sync', validate(cartSyncSchema), async (req, res) => {
   try {
     const { items } = req.body;
+
+    // update cart in inventory service (main persistence layer)
     await axios.post(`${INVENTORY_SERVICE}/cart/${req.params.userId}/sync`, { items });
     
-    // save cart draft in mongo for analytics (fire and forget)
-    axios.post(`${CATALOG_SERVICE}/cart-draft/${req.params.userId}/add`, { items }).catch(() => {});
+    // save cart draft in mongo for analytics (fire and forget, should not break main flow)
+    axios
+      .post(`${CATALOG_SERVICE}/cart-draft/${req.params.userId}/add`, { items })
+      .catch(() => { /* intentionally ignored */ });
     
     res.sendStatus(200);
-  } catch (e) { handleError(res, e); }
+  } catch (e) {
+    // centralized error handling (logging, mapping, etc.)
+    handleError(res, e);
+  }
 });
 
+// CHECKOUT SAGA
+
 // checkout proxy with oversell check and hybrid event
-app.post('/api/checkout', async (req, res) => {
+// applied validation
+app.post('/api/checkout', validate(checkoutSchema), async (req, res) => {
   const { userId, items } = req.body;
+
+  // will store created order id (used for response / potential tracking)
   let orderId = null;
 
   try {
-    // step 1: transaction in postgres (price snapshot, reduce stock)
+    // step 1: transaction in postgres (price snapshot, reduce stock, create order)
     const pgRes = await axios.post(`${INVENTORY_SERVICE}/checkout`, { userId, items });
     orderId = pgRes.data.orderId;
 
-    // step 2: close draft in mongo
+    // step 2: close draft / emit event in mongo (telemetry / analytics)
     await axios.post(`${CATALOG_SERVICE}/telemetry/event`, {
-      action: 'checkout_completed', userId, details: `order_${orderId}`
+      action: 'checkout_completed',
+      userId,
+      details: `order_${orderId}`
     });
 
     res.status(201).json({ success: true, orderId });
+
   } catch (error) {
-    // oversell will throw 409 from inventory service
+    // oversell (race condition on stock) will typically return 409 from inventory service
+    // note: no compensation here -> inventory service owns transaction consistency
     handleError(res, error, 'checkout_failed');
   }
 });
 
 // cancel order and return stock
 app.post('/api/orders/:orderId/cancel', async (req, res) => {
-  axios.post(`${INVENTORY_SERVICE}/orders/${req.params.orderId}/cancel`)
-    .then(() => res.sendStatus(200)).catch(e => handleError(res, e));
+  // delegate cancellation to inventory (restores stock + updates order state)
+  axios
+    .post(`${INVENTORY_SERVICE}/orders/${req.params.orderId}/cancel`)
+    .then(() => res.sendStatus(200))
+    .catch(e => handleError(res, e));
 });
 
+// global error handler to fully suppress stack traces from express
+app.use((err, req, res, next) => {
+  // log internal error (should be replaced with structured logging in production)
+  console.error('system_error:', err.message);
+
+  // do not leak internals to client
+  res.status(500).json({
+    error: 'internal_server_error',
+    code: 500,
+    details: 'unexpected critical error'
+  });
+});
 const PORT = 3000;
 app.listen(PORT, () => console.log(`api gateway listening on port ${PORT}`));

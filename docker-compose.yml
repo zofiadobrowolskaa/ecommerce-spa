@@ -52,6 +52,7 @@ services:
       - "${CATALOG_SERVICE_PORT}:3002"
     environment:
       - PORT=3002
+      - MONGO_URI=${MONGO_URI}
     depends_on:
       mongodb:
         condition: service_healthy
