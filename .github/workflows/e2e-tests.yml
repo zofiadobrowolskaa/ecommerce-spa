@@ -3,7 +3,7 @@ name: E2E Critical Path Tests
 
 on:
   push:
-    branches: [ "main", "feature/security-docs-tests" ]
+    branches: [ "main", "feature/security-docs-tests" ] 
   pull_request:
     branches: [ "main" ]
 
@@ -58,8 +58,30 @@ jobs:
     # step 4: wait for database migrations and seeds to finish
     - name: Wait for database migrations and seeds
       run: sleep 15
-        
-    # step 5: execute the supertest suite directly inside the gateway container
+
+    # step 5: inject test state into the blank CI database
+    # this recreates the exact state needed for the critical path tests
+    # NOTE: ensures deterministic test data (product, category, schema fixes)
+    - name: Prepare Test Database State
+      run: |
+        cat << 'EOF' > prep.sql
+        CREATE TABLE IF NOT EXISTS "OrderLine" (
+          "id" SERIAL PRIMARY KEY,
+          "orderId" INTEGER NOT NULL REFERENCES "Order"("id") ON DELETE CASCADE,
+          "sku" TEXT NOT NULL,
+          "price" DECIMAL(10,2) NOT NULL,
+          "quantity" INTEGER NOT NULL
+        );
+        INSERT INTO categories (id, name) VALUES (1, 'Test Category') ON CONFLICT (id) DO NOTHING;
+        INSERT INTO products (id, name, sku, price, stock, category_id)
+        VALUES (1, 'Test Product', 'TEST-1', 120.00, 100, 1)
+        ON CONFLICT (id) DO UPDATE SET stock = 100;
+        EOF
+
+        # execute SQL inside postgres container
+        docker exec -i spa-postgres-1 psql -U user -d ecommerce_db < prep.sql
+
+    # step 6: execute the supertest suite directly inside the gateway container
     # e2e testing of critical paths
     # NOTE: explicitly set API_URL to container localhost to avoid DNS issues
     - name: Run Supertest E2E Suite
