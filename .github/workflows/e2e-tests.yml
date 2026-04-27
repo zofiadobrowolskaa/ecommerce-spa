@@ -78,6 +78,10 @@ jobs:
         );
         INSERT INTO categories (id, name) VALUES (1, 'Test Category') ON CONFLICT (id) DO NOTHING;
         INSERT INTO products (id, name, sku, price, stock, category_id) VALUES (1, 'Test Product', 'TEST-1', 120.00, 100, 1) ON CONFLICT (id) DO UPDATE SET stock = 100;
+        
+        -- resynchronize the auto-increment counters so the database doesn't attempt to reuse ID=1
+        SELECT setval(pg_get_serial_sequence('categories', 'id'), (SELECT MAX(id) FROM categories));
+        SELECT setval(pg_get_serial_sequence('products', 'id'), (SELECT MAX(id) FROM products));
         EOF
         docker exec -i spa-postgres-1 psql -U user -d ecommerce_db < prep.sql
 
