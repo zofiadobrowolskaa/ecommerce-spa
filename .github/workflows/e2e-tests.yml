@@ -13,13 +13,26 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    
-    # step 1: start the entire microservices stack using our compose file
+
+    # step 1: generate a dummy .env file for CI so databases can start securely
+    - name: Create .env file for CI
+      run: |
+        echo "POSTGRES_USER=user" >> .env
+        echo "POSTGRES_PASSWORD=password" >> .env
+        echo "POSTGRES_DB=ecommerce_db" >> .env
+        echo "DATABASE_URL=postgresql://user:password@postgres:5432/ecommerce_db" >> .env
+        echo "MONGO_URI=mongodb://admin:password@mongodb:27017" >> .env
+
+    # step 2: start the entire microservices stack with fail-safe logging
     - name: Start Docker Compose Stack
-      # forces the project name to 'spa' so container names match our local environment
-      run: docker compose -p spa up -d --build
+      run: |
+        docker compose -p spa up -d --build || (
+          echo "Compose failed. Printing logs..."
+          docker compose -p spa logs
+          exit 1
+        )
       
-    # step 2: wait for api gateway to be fully ready
+    # step 3: wait for api gateway to be fully ready
     - name: Wait for API Gateway
       run: |
         echo "waiting for gateway..."
@@ -28,13 +41,13 @@ jobs:
           sleep 2
         done
         echo "gateway failed to start"
-        docker compose logs
+        docker compose -p spa logs
         exit 1
 
-    # step 3: give knex a few seconds to finish migrating and seeding products in pg-service
+    # step 4: give knex a few seconds to finish migrating and seeding products
     - name: Wait for database migrations and seeds
       run: sleep 15
         
-    # step 4: execute the supertest suite directly inside the gateway container
+    # step 5: execute the supertest suite directly inside the gateway container
     - name: Run Supertest E2E Suite
       run: docker exec spa-api-gateway-1 npm run test:e2e
