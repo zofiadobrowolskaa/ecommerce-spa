@@ -114,13 +114,14 @@ app.post('/checkout', async (req, res) => {
     // prisma interactive transaction quarantees atomicity
     const order = await prisma.$transaction(async (tx) => {
       let totalAmount = 0;
+      const orderLinesData = [];
       
       // oversell check and stock deduction
       for (const item of items) {
         const numericId = parseInt(String(item.productId).replace(/\D/g, '')) || 1;
         
         // use raw query to lock the row for update to prevent race conditions
-        const [product] = await tx.$queryRaw`SELECT stock, price FROM products WHERE id = ${numericId} FOR UPDATE`;
+        const [product] = await tx.$queryRaw`SELECT sku, stock, price FROM products WHERE id = ${numericId} FOR UPDATE`;
         
         if (!product || product.stock < item.quantity) {
           throw new Error('409_CONFLICT_OVERSELL');
@@ -129,6 +130,12 @@ app.post('/checkout', async (req, res) => {
         // reduce stock
         await tx.$executeRaw`UPDATE products SET stock = stock - ${item.quantity} WHERE id = ${numericId}`;
         totalAmount += Number(product.price) * item.quantity;
+
+        orderLinesData.push({
+          sku: product.sku,
+          quantity: item.quantity,
+          price: item.price
+        });
       }
 
       // create order and snapshot price
@@ -137,11 +144,7 @@ app.post('/checkout', async (req, res) => {
           totalAmount,
           status: 'PAID',
           lines: {
-            create: items.map(item => ({
-              productId: parseInt(String(item.productId).replace(/\D/g, '')) || 1,
-              quantity: item.quantity,
-              price: item.price
-            }))
+            create: orderLinesData
           }
         }
       });
@@ -171,7 +174,7 @@ app.post('/orders/:id/cancel', async (req, res) => {
       
       // return stock to inventory
       for (const line of order.lines) {
-        await tx.$executeRaw`UPDATE products SET stock = stock + ${line.quantity} WHERE id = ${line.productId}`;
+        await tx.$executeRaw`UPDATE products SET stock = stock + ${line.quantity} WHERE sku = ${line.sku}`;
       }
     });
     res.sendStatus(200);
