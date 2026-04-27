@@ -13,3 +13,5 @@ npm-debug.log*
 .DS_Store
 .vscode/
 .idea/
+
+old_README.md
