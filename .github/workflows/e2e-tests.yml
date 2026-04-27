@@ -21,7 +21,9 @@ jobs:
         echo "POSTGRES_PASSWORD=password" >> .env
         echo "POSTGRES_DB=ecommerce_db" >> .env
         echo "DATABASE_URL=postgresql://user:password@postgres:5432/ecommerce_db" >> .env
-        echo "MONGO_URI=mongodb://admin:password@mongodb:27017" >> .env
+        echo "MONGO_INITDB_ROOT_USERNAME=admin" >> .env
+        echo "MONGO_INITDB_ROOT_PASSWORD=password" >> .env
+        echo "MONGO_URI=mongodb://admin:password@mongodb:27017/admin" >> .env
 
     # step 2: start the entire microservices stack with fail-safe logging
     - name: Start Docker Compose Stack
