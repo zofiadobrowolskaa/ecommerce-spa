@@ -7,6 +7,11 @@ const Review = require('./models/Review');
 const app = express();
 app.use(express.json());
 
+// simple healthcheck endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', service: 'catalog-analytics-service' });
+});
+
 // telemetry event log endpoint (native driver with 3 operators)
 app.post('/telemetry/event', async (req, res) => {
   try {
