@@ -47,10 +47,9 @@ services:
         condition: service_healthy
 
   mongo-service:
-    build:
-      context: ./backend/catalog-analytics-service
+    build: ./backend/catalog-analytics-service
     ports:
-      - "3002:3002"
+      - "${CATALOG_SERVICE_PORT}:3002"
     environment:
       - PORT=3002
       - MONGO_URI=${MONGO_URI}
