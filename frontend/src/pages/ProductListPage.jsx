@@ -1,6 +1,6 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useAppContext } from '../context/AppContext';
+// import { useAppContext } from '../context/AppContext'; // Omit context, we fetch directly
 import useProductFiltering from '../hooks/useProductFiltering';
 import usePagination from '../hooks/usePagination';
 import ProductCard from '../components/ProductCard';
@@ -9,9 +9,32 @@ import Pagination from '../components/Pagination';
 import '../styles/pages/_productListPage.scss';
 
 const ProductListPage = () => {
-  const { products } = useAppContext();
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   const { filters, setFilters, filteredProducts } = useProductFiltering(products);
   const [searchParams, setSearchParams] = useSearchParams();
+
+  // fetch products from api gateway
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('http://localhost:3000/api/products');
+        if (!response.ok) throw new Error('failed to fetch products');
+        
+        const data = await response.json();
+        setProducts(data);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
 
   // pagination configuration
   const pagination = usePagination(filteredProducts, 12, { paramName: 'page' });
@@ -44,6 +67,9 @@ const ProductListPage = () => {
     });
   }, [setSearchParams]);
 
+  if (loading) return <div className="product-list-page"><h1 className="page-title">Loading...</h1></div>;
+  if (error) return <div className="product-list-page"><h1 className="page-title">Error: {error}</h1></div>;
+
   return (
     <div className="product-list-page">
       <h1 className="page-title">Jewellery</h1>
@@ -51,6 +77,7 @@ const ProductListPage = () => {
       <div className="content-wrapper">
         <FilterSidebar 
           filters={filters} 
+          products={products}
           setFilters={(newFilters) => {
              if (typeof newFilters === 'function') {
                 const next = newFilters(filters);
@@ -60,7 +87,7 @@ const ProductListPage = () => {
              }
              setFilters(newFilters);
           }} 
-        /> 
+        />
         
         <div className="products-section">
           <div className="product-grid">

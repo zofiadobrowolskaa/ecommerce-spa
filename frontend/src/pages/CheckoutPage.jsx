@@ -10,15 +10,11 @@ import '../styles/pages/_checkoutPage.scss';
 
 /*
   multi-step checkout wizard.
-  manages navigation through steps: Details -> Shipping -> Payment -> Summary.
+  simplified for flat relational database schema.
 */
 const CheckoutPage = () => {
   const { cart, cartTotal, products, profile, discountValue, cartTotalAfterDiscount } = useAppContext();
 
-  /*
-    initialize form data with profile values if available.
-    ensures previously entered profile data pre-fills future orders.
-  */
   const initialFormData = {
     name: profile.name || '',
     surname: profile.surname || '',
@@ -39,12 +35,9 @@ const CheckoutPage = () => {
   };
 
   const navigate = useNavigate();
-  // current step of the checkout wizard (1-4)
   const [currentStep, setCurrentStep] = useState(1);
-  // global form state for all steps
   const [formData, setFormData] = useState(initialFormData);
 
-  // redirect to products page if cart is empty and user tries to access checkout manually.
   useEffect(() => {
     if (cart.length === 0 && currentStep < 4) {
       navigate('/products');
@@ -53,33 +46,28 @@ const CheckoutPage = () => {
 
   /*
     aggregate cart items with full product data for summary display.
-    combines cart IDs with product info (name, image, variant, price).
+    removed variant dependency.
   */
   const cartItemsData = cart.map(item => {
-    const product = products.find(p => p.id === item.productId);
-    const variant = product?.variants.find(v => v.id === item.variantId);
-    if (!product || !variant) return null;
+    const product = products.find(p => p.id == item.productId);
+    if (!product) return null;
 
-    const unitPrice = product.price + variant.priceAdjustment;
+    const unitPrice = Number(product.price) || 0;
+    
     return {
       ...item,
       name: product.name,
-      variantColor: variant.color,
-      imageUrl: variant.imageUrl,
+      variantColor: 'Default',
+      imageUrl: product.image_url || '/img/placeholder.jpg',
       itemSize: item.size,
       unitPrice: unitPrice,
       totalPrice: unitPrice * item.quantity,
     };
   }).filter(item => item !== null);
 
-  // calculate shipping cost based on selected method
   const shippingCost = formData.shippingMethod === 'express' ? 15 : 5;
-  const totalWithShipping = cartTotalAfterDiscount + shippingCost;
+  const totalWithShipping = (Number(cartTotalAfterDiscount) || 0) + shippingCost;
 
-  /*
-    navigate to next step and merge step data into global form state.
-    preserves entered data when going back and forth.
-  */
   const nextStep = (data) => {
     setFormData(prev => ({ ...prev, ...data }));
     setCurrentStep(prev => prev + 1);
@@ -91,10 +79,6 @@ const CheckoutPage = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  /*
-    dynamically render the component for the current step.
-    commonProps object demonstrates passing shared properties to all step components.
-  */
   const renderStep = () => {
     const commonProps = { nextStep, prevStep, formData, setFormData };
 
@@ -127,7 +111,6 @@ const CheckoutPage = () => {
         <span className={currentStep >= 4 ? 'active' : ''}>4. Summary</span>
       </div>
 
-      {/* render the current step of the wizard */}
       {renderStep()}
     </div>
   );

@@ -3,22 +3,20 @@ import { useSearchParams } from 'react-router-dom';
 
 /*
   custom hook for product filtering synced with URL.
-  uses search params instead of local state.
+  updated to reflect flat relational data structure.
 */
 
 const useProductFiltering = (products) => {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // compute max price from all product variants
+  // compute max price directly from base product prices
   const maxInitialPrice = useMemo(() => {
     if (!products || products.length === 0) return 500;
-    const allPossiblePrices = products.flatMap(product => 
-      product.variants.map(variant => product.price + variant.priceAdjustment)
-    );
-    return Math.ceil(Math.max(...allPossiblePrices));
+    const allPrices = products.map(p => Number(p.price) || 0);
+    return Math.ceil(Math.max(...allPrices));
   }, [products]);
 
-  // decode filters from URL, use defaults if missing
+  // decode filters from URL
   const filters = useMemo(() => {
     return {
       categories: searchParams.get('categories') ? searchParams.get('categories').split(',') : [],
@@ -29,7 +27,7 @@ const useProductFiltering = (products) => {
     };
   }, [searchParams, maxInitialPrice]);
 
-  // update URL params instead of local state
+  // update URL params
   const setFilters = useCallback((newFiltersOrFn) => {
     setSearchParams(prevParams => {
       const currentFilters = {
@@ -49,19 +47,16 @@ const useProductFiltering = (products) => {
       if (newFilters.categories && newFilters.categories.length > 0) {
         newParams.set('categories', newFilters.categories.join(','));
       }
-      
       if (newFilters.searchQuery) {
         newParams.set('search', newFilters.searchQuery);
       }
-
       if (newFilters.minPrice > 0) {
         newParams.set('minPrice', newFilters.minPrice.toString());
       }
-      
       if (newFilters.maxPrice < maxInitialPrice) {
         newParams.set('maxPrice', newFilters.maxPrice.toString());
       }
-
+      // Assuming rating defaults to 0
       if (newFilters.rating > 0) {
         newParams.set('rating', newFilters.rating.toString());
       }
@@ -70,26 +65,25 @@ const useProductFiltering = (products) => {
     });
   }, [setSearchParams, maxInitialPrice]);
 
-  // filter products based on decoded filters
+  // filter products based on flat properties
   const filteredProducts = useMemo(() => {
+    if (!products || !Array.isArray(products)) return [];
+
     return products.filter(product => {
-      const variantPrices = product.variants.map(v => product.price + v.priceAdjustment);
-      const hasMatchInRange = variantPrices.some(price => 
-        price >= filters.minPrice && price <= filters.maxPrice
-      );
-      if (!hasMatchInRange) return false;
+      const price = Number(product.price) || 0;
+      
+      // Check price range
+      if (price < filters.minPrice || price > filters.maxPrice) return false;
 
-      if (filters.categories.length > 0 && !filters.categories.includes(product.category)) {
-        return false;
-      }
+      // Note: your new DB uses 'category_id', but frontend filters use 'categories' strings. 
+      // We will skip strict category filtering for now until we map IDs to Names
+      // if (filters.categories.length > 0 && !filters.categories.includes(product.category_id)) return false;
 
-      if (product.rating < filters.rating) return false;
-
+      // Check search query against name
       if (filters.searchQuery) {
         const query = filters.searchQuery.toLowerCase();
-        const matchesName = product.name.toLowerCase().includes(query);
-        const matchesTag = product.tags.some(tag => tag.toLowerCase().includes(query));
-        if (!matchesName && !matchesTag) return false;
+        const matchesName = product.name?.toLowerCase().includes(query);
+        if (!matchesName) return false;
       }
 
       return true;

@@ -8,32 +8,83 @@ import '../styles/pages/_productDetailsPage.scss';
 const ProductDetailsPage = () => {
   const { id, variantId } = useParams();
   const navigate = useNavigate();
-  const { products, addToCart } = useAppContext();
+  const { addToCart } = useAppContext(); // only keep addToCart from context
 
-  // find the product by id from the global product list
-  const product = products.find(p => p.id === id);
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  if (!product) {
+  const [selectedVariantId, setSelectedVariantId] = useState(variantId);
+  const [quantity, setQuantity] = useState(1);
+  const [selectedSize, setSelectedSize] = useState(null);
+
+  // fetch single product details from api gateway
+  useEffect(() => {
+    const fetchProductDetails = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`http://localhost:3000/api/products/${id}`);
+        
+        if (!response.ok) {
+           if(response.status === 404) throw new Error("product not found");
+           throw new Error("Failed to fetch product details");
+        }
+        
+        const data = await response.json();
+        setProduct(data);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+       fetchProductDetails();
+    }
+  }, [id]);
+
+  // sync URL variantId with state once product is loaded
+  useEffect(() => {
+    if (product && product.variants) {
+      if (variantId) {
+        const variantExists = product.variants.some(v => v.id === variantId);
+        if (variantExists) {
+          setSelectedVariantId(variantId);
+          const currentVariantFromUrl = product.variants.find(v => v.id === variantId);
+          setSelectedSize(currentVariantFromUrl?.size?.[0] || null);
+          setQuantity(1);
+        } else {
+          const defaultVariantId = product.variants[0].id;
+          navigate(`/products/${product.id}/${defaultVariantId}`, { replace: true });
+        }
+      } else if (product.variants.length > 0) {
+         // if no variant in url, default to first
+         const defaultVariantId = product.variants[0].id;
+         navigate(`/products/${product.id}/${defaultVariantId}`, { replace: true });
+      }
+    }
+    // scroll to top smoothly whenever product or variant changes
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [id, variantId, product, navigate]);
+
+  if (loading) return <div className="product-details-page">Loading details...</div>;
+  if (error) {
     return (
       <div className="product-details-404">
-        <h1>Product not found</h1>
+        <h1>{error}</h1>
         <button onClick={() => navigate('/products')}>Go back to products page</button>
       </div>
     );
   }
-
-  const [selectedVariantId, setSelectedVariantId] = useState(variantId);
-  const [quantity, setQuantity] = useState(1);
+  if (!product) return null;
 
   // find the currently selected variant object
   const currentVariant = product.variants?.find(v => v.id === selectedVariantId);
 
-  // state for selected size, defaulting to first size of variant
-  const initialSize = currentVariant?.size?.[0] || null;
-  const [selectedSize, setSelectedSize] = useState(initialSize);
-
   // calculate final price including variant adjustment
-  const basePrice = product.price || 0;
+  // ensure we handle numerical values correctly, API might return strings for decimal types
+  const basePrice = Number(product.price) || 0; 
   const finalPrice = basePrice + (currentVariant?.priceAdjustment || 0);
 
   // update variant selection, URL, and reset quantity and size
@@ -46,26 +97,6 @@ const ProductDetailsPage = () => {
     setSelectedSize(newSize);
     setQuantity(1);
   };
-
-  // sync URL variantId with state, handle invalid variant IDs
-  useEffect(() => {
-    if (variantId && product) {
-      const variantExists = product.variants.some(v => v.id === variantId);
-
-      if (variantExists) {
-        setSelectedVariantId(variantId);
-        const currentVariantFromUrl = product.variants.find(v => v.id === variantId);
-        setSelectedSize(currentVariantFromUrl?.size?.[0] || null);
-        setQuantity(1);
-      } else {
-        const defaultVariantId = product.variants[0].id;
-        navigate(`/products/${product.id}/${defaultVariantId}`, { replace: true });
-      }
-    }
-
-    // scroll to top smoothly whenever product or variant changes
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [id, variantId, product, navigate]);
 
   // add selected product variant and quantity to cart with validation
   const handleAddToCart = () => {
@@ -95,7 +126,7 @@ const ProductDetailsPage = () => {
       <div className="product-main-info">
         <div className="product-image-gallery">
           <img 
-            src={currentVariant?.imageUrl} 
+            src={currentVariant?.imageUrl || product.gallery?.[0] || '/img/placeholder.jpg'} 
             alt={product.name} 
             className="main-image"
           />
@@ -106,24 +137,26 @@ const ProductDetailsPage = () => {
           <p className="price">${finalPrice.toFixed(2)}</p>
           <p className="description">{product.description}</p>
 
-          <div className="options-group">
-            <label>Variant ({currentVariant?.color}):</label>
-            <div className="variant-selector">
-              {product.variants.map(variant => (
-                <button
-                  key={variant.id}
-                  onClick={() => handleVariantChange(variant.id)}
-                  className={selectedVariantId === variant.id ? 'active' : ''}
-                >
-                  {variant.color}
-                </button>
-              ))}
+          {product.variants && product.variants.length > 0 && (
+            <div className="options-group">
+              <label>variant ({currentVariant?.color}):</label>
+              <div className="variant-selector">
+                {product.variants.map(variant => (
+                  <button
+                    key={variant.id}
+                    onClick={() => handleVariantChange(variant.id)}
+                    className={selectedVariantId === variant.id ? 'Active' : ''}
+                  >
+                    {variant.color}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {currentVariant?.size && currentVariant.size.length > 0 && (
             <div className="options-group">
-              <label>Size:</label>
+              <label>size:</label>
               <select onChange={(e) => setSelectedSize(e.target.value)} value={selectedSize}>
                 {currentVariant.size.map(size => (
                   <option key={size} value={size}>{size}</option>
@@ -164,7 +197,7 @@ const ProductDetailsPage = () => {
       {/* show related products section */}
       <RelatedProducts currentProduct={product} /> 
 
-      {product.aboutMaterials && (
+      {product.aboutMaterials && Object.keys(product.aboutMaterials).length > 0 && (
         <section className="product-materials">
           <h2>About the materials</h2>
           {Object.entries(product.aboutMaterials).map(([materialName, description]) => (
