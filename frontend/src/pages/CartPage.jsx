@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import toast from 'react-hot-toast';
-import { confirmDialog } from '../components/ConfirmDialog'; // Dodano import
+import { confirmDialog } from '../components/ConfirmDialog'; 
 import '../styles/pages/_cartPage.scss';
 
 /*
   aggregate cart state by merging lightweight cart items with full product data
-  each cart item only stores productId, variantId, quantity, and size
+  simplified for flat relational DB schema (no variants)
 */
 
 const CartPage = () => {
@@ -55,21 +55,22 @@ const CartPage = () => {
   const isDiscountApplied = discount.percentage > 0;
   const finalTotal = cartTotal - discountValue;
 
-  // merge cart items with full product and variant info
+  // merge cart items with full product info (no variants yet)
   const cartItemsData = cart.map(item => {
-    const product = products.find(p => p.id === item.productId);
-    const variant = product?.variants.find(v => v.id === item.variantId);
+    // safely match numeric/string IDs
+    const product = products.find(p => p.id == item.productId);
 
-    if (!product || !variant) return null;
+    if (!product) return null;
 
-    const unitPrice = product.price + variant.priceAdjustment;
+    // ensure numerical operations
+    const unitPrice = Number(product.price) || 0;
 
     return {
       ...item,
       productName: product.name,
-      variantColor: variant.color,
+      variantColor: 'Default', // fallback for now
       itemSize: item.size,
-      imageUrl: variant.imageUrl,
+      imageUrl: product.image_url || '/img/placeholder.jpg',
       unitPrice,
       totalPrice: unitPrice * item.quantity,
     };
@@ -94,13 +95,13 @@ const CartPage = () => {
         <div className="cart-items">
           {cartItemsData.map(item => (
             <div key={`${item.productId}-${item.variantId}-${item.itemSize}`} className="cart-item">
-              <Link to={`/products/${item.productId}/${item.variantId}`}>
+              <Link to={`/products/${item.productId}/base`}>
                 <img src={item.imageUrl} alt={item.productName} className="item-image" />
               </Link>
               <div className="item-details">
                 <h3>
-                  <Link to={`/products/${item.productId}/${item.variantId}`} className="item-name-link">
-                    {item.productName} ({item.variantColor})
+                  <Link to={`/products/${item.productId}/base`} className="item-name-link">
+                    {item.productName} 
                   </Link>
                   {item.itemSize && <span> - Size: {item.itemSize}</span>}
                 </h3>
@@ -132,7 +133,7 @@ const CartPage = () => {
           
           <div className="summary-line">
             <span>Subtotal:</span>
-            <span>${cartTotal.toFixed(2)}</span>
+            <span>${(Number(cartTotal) || 0).toFixed(2)}</span>
           </div>
 
           {/* promo code form, prevent page reload, disable after discount */}
@@ -160,13 +161,13 @@ const CartPage = () => {
           {isDiscountApplied && (
             <div className="summary-line discount-line">
               <span>Discount (AURA20):</span>
-              <span>-${discountValue.toFixed(2)}</span>
+              <span>-${(Number(discountValue) || 0).toFixed(2)}</span>
             </div>
           )}
 
           <div className="summary-line total-line">
             <span>Total:</span>
-            <span>${finalTotal.toFixed(2)}</span>
+            <span>${(Number(finalTotal) || 0).toFixed(2)}</span>
           </div>
 
           <Link 

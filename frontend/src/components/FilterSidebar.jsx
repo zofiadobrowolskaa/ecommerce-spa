@@ -1,16 +1,14 @@
 import React, { useMemo, useCallback } from 'react';
-import { useAppContext } from '../context/AppContext';
+// import { useAppContext } from '../context/AppContext'; 
 
 /*
   filter sidebar for live product filtering
   updates filters state instead of filtering data directly
-  uses useMemo and useCallback for performance
+  simplified to work with relational DB structure
 */
 const CATEGORIES = ["Rings", "Earrings", "Necklaces", "Bracelets"];
 
-const FilterSidebar = ({ filters, setFilters }) => {
-  const { products } = useAppContext();
-
+const FilterSidebar = ({ filters, setFilters, products = [] }) => {
   // generic handler for text/number inputs
   const handleChange = useCallback((e) => {
     const { name, value, type } = e.target;
@@ -43,14 +41,10 @@ const FilterSidebar = ({ filters, setFilters }) => {
     setFilters(prev => ({ ...prev, [name]: numValue }));
   }, [filters, setFilters]);
 
-  // calculate maximum available price from all variants
+  // calculate maximum available price from base prices (no variants yet)
   const maxAvailablePrice = useMemo(() => {
-    if (products.length === 0) return 500;
-
-    const allPrices = products.flatMap(p => 
-      p.variants.map(v => p.price + v.priceAdjustment)
-    );
-    
+    if (!products || products.length === 0) return 500;
+    const allPrices = products.map(p => Number(p.price) || 0);
     return Math.ceil(Math.max(...allPrices, 500));
   }, [products]);
 
@@ -61,7 +55,7 @@ const FilterSidebar = ({ filters, setFilters }) => {
       <h2>Filters</h2>
       
       <div className="filter-group">
-        <label htmlFor="searchQuery">Search (Name/Tag)</label>
+        <label htmlFor="searchQuery">Search (Name)</label>
         <input 
           id="searchQuery"
           name="searchQuery" 

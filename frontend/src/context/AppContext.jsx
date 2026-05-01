@@ -1,18 +1,26 @@
+// frontend/src/context/AppContext.jsx
 import React, { createContext, useContext, useMemo, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import useLocalStorage from '../hooks/useLocalStorage';
-import initialProducts from '../data/products.json';
 import { authService } from '../auth/authService';
 
 export const AppContext = createContext();
 
+// helper to calculate total value of items in the cart
 const calculateCartTotal = (currentCart, products) => {
   return currentCart.reduce((total, item) => {
-    const product = products.find(p => p.id === item.productId);
+    // safely match string or number IDs using ==
+    const product = products.find(p => p.id == item.productId);
     if (!product) return total;
-    const variant = product.variants.find(v => v.id === item.variantId);
-    if (!variant) return total;
-    return total + ((product.price + variant.priceAdjustment) * item.quantity);
+    
+    // safe check for variants using optional chaining
+    const variant = product.variants?.find(v => v.id === item.variantId);
+    
+    // force numerical types to prevent string concatenation bugs
+    const basePrice = Number(product.price) || 0;
+    const adjustment = variant ? Number(variant.priceAdjustment) : 0;
+    
+    return total + ((basePrice + adjustment) * item.quantity);
   }, 0);
 };
 
@@ -30,8 +38,8 @@ const defaultProfile = {
 };
 
 export const AppProvider = ({ children }) => {
-
-  const [products, setProducts] = useLocalStorage('products', initialProducts);
+  // state for products fetched from the backend (replaces local storage)
+  const [products, setProducts] = useState([]);
   
   // server-side cart state replacing local storage
   const [cart, setCart] = useState([]);
@@ -42,6 +50,20 @@ export const AppProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [profile, setProfileState] = useState(defaultProfile);
 
+  // fetch products globally on mount to populate context for cart calculations
+  useEffect(() => {
+    const fetchGlobalProducts = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/api/products');
+        setProducts(response.data);
+      } catch (error) {
+        console.error('failed to fetch products for context', error);
+      }
+    };
+    fetchGlobalProducts();
+  }, []);
+
+  // initialize authentication state
   useEffect(() => {
     const initAuth = () => {
       const currentUser = authService.getCurrentUser();
@@ -80,9 +102,12 @@ export const AppProvider = ({ children }) => {
     try {
       // transform frontend cart format into backend payload
       const items = newCart.map(item => {
-        const product = products.find(p => p.id === item.productId);
+        const product = products.find(p => p.id == item.productId);
         const variant = product?.variants?.find(v => v.id === item.variantId);
-        const price = (product?.price || 0) + (variant?.priceAdjustment || 0);
+        
+        // safely extract numeric prices
+        const price = (Number(product?.price) || 0) + (Number(variant?.priceAdjustment) || 0);
+        
         return { productId: item.productId, quantity: item.quantity, price };
       });
       
