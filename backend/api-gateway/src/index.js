@@ -93,11 +93,12 @@ app.post('/api/products', validate(productSchema), async (req, res) => {
       }
     }
 
-    // return error with rollback status (important for monitoring & retries)
-    res.status(500).json({
-      error: 'hybrid_transaction_failed',
-      code: 500,
-      details: error.message,
+    // return error with rollback status, preserving original status code
+    const statusCode = error.response?.status || 500;
+    res.status(statusCode).json({
+      error: statusCode === 409 ? 'conflict' : 'hybrid_transaction_failed',
+      code: statusCode,
+      details: error.response?.data || error.message,
       rollback_status: rollbackStatus
     });
   }
@@ -189,6 +190,60 @@ app.post('/api/orders/:orderId/cancel', async (req, res) => {
     .catch(e => handleError(res, e));
 });
 
+// aggregate product data: postgres (base) + mongo (details)
+app.get('/api/products/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // query internal microservices within docker network using exact service names from docker-compose.yml
+    const inventoryUrl = `http://pg-service:3001/products/${id}`;
+    const catalogUrl = `http://mongo-service:3002/product-details/${id}`;
+
+    // fetch data in parallel for performance
+    const [invResponse, catResponse] = await Promise.all([
+      fetch(inventoryUrl),
+      fetch(catalogUrl).catch(() => null) // do not block if mongo fails
+    ]);
+
+    // validate main record (postgres)
+    if (!invResponse.ok) {
+      if (invResponse.status === 404) {
+        return res.status(404).json({ 
+          error: 'not_found', 
+          details: 'product not found in the inventory database.' 
+        });
+      }
+      throw new Error(`inventory service error: status ${invResponse.status}`);
+    }
+
+    const inventoryData = await invResponse.json();
+    let catalogData = {};
+
+    // get supplementary data (mongo)
+    if (catResponse && catResponse.ok) {
+      catalogData = await catResponse.json();
+    }
+
+    // aggregate the final object
+    const aggregatedProduct = {
+      ...inventoryData,
+      description: catalogData.longDescription || inventoryData.description || "",
+      specs: catalogData.specs || {},
+      gallery: catalogData.gallery || [],
+      reviews: catalogData.reviews || []
+    };
+
+    res.status(200).json(aggregatedProduct);
+  } catch (error) {
+    // handle error directly to avoid server crash
+    console.error(error);
+    res.status(500).json({ 
+      error: 'internal_server_error', 
+      details: 'an error occurred while aggregating product data.' 
+    });
+  }
+});
+
 // global error handler to fully suppress stack traces from express
 app.use((err, req, res, next) => {
   // log internal error (should be replaced with structured logging in production)
@@ -201,5 +256,6 @@ app.use((err, req, res, next) => {
     details: 'unexpected critical error'
   });
 });
+
 const PORT = 3000;
 app.listen(PORT, () => console.log(`api gateway listening on port ${PORT}`));

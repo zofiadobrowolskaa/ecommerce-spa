@@ -146,6 +146,26 @@ app.post('/internal/product-details', async (req, res) => {
   }
 });
 
+// fetch product details for api gateway aggregation
+app.get('/product-details/:productId', async (req, res) => {
+  try {
+    const detail = await ProductDetail.findOne({ productId: Number(req.params.productId) });
+    if (!detail) {
+      return res.status(404).json({ message: 'details not found' });
+    }
+    
+    // fetch approved reviews to attach to details
+    const reviews = await Review.find({ productId: Number(req.params.productId), status: 'APPROVED' });
+    
+    res.status(200).json({
+      ...detail.toObject(),
+      reviews: reviews
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 const PORT = process.env.PORT || 3002;
 
 // init both drivers before starting app
