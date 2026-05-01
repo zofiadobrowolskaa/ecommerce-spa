@@ -1,5 +1,7 @@
 exports.seed = async function(knex) {
-  // delete existing entries to prevent duplicates
+  // first delete products to respect foreign key constraint
+  await knex('products').del();
+  // then delete existing categories to prevent duplicates
   await knex('categories').del();
   
   // insert default domain seeds

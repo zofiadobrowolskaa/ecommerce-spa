@@ -28,6 +28,19 @@ app.get('/products', async (req, res) => {
   res.json(products);
 });
 
+// get single product by id for gateway aggregation
+app.get('/products/:id', async (req, res, next) => {
+  try {
+    const product = await knex('products').where({ id: req.params.id }).first();
+    if (!product) {
+      return res.status(404).json({ error: 'not_found' });
+    }
+    res.json(product);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // internal endpoint for gateway to create product
 app.post('/internal/products', async (req, res, next) => {
   try {
