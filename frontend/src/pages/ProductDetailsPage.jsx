@@ -181,7 +181,7 @@ const ProductDetailsPage = () => {
           {/* size selector */}
           {currentVariant?.size && currentVariant.size.length > 0 && (
             <div className="options-group">
-              <label>size:</label>
+              <label>Size:</label>
               <select
                 onChange={(e) => setSelectedSize(e.target.value)}
                 value={selectedSize}
