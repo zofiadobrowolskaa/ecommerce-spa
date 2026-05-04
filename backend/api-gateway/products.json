@@ -1,0 +1,553 @@
+[
+  {
+    "id": "p001",
+    "name": "Ocean Ring",
+    "category": "Rings",
+    "subCategory": "Ocean Collection",
+    "description": "An elegant sterling silver ring inspired by the calm movement of ocean waves. Designed for everyday wear with a subtle gemstone accent.",
+    "price": 189.99,
+    "rating": 4.6,
+    "tags": ["ocean", "ring", "gemstone", "minimalist", "handcrafted"],
+    "aboutMaterials": {
+      "925SterlingSilver": "All silver pieces are made with 925 sterling silver, Aura's signature material and the industry standard in the United States and most world markets. Made of 92.5% pure silver, it’s a highly durable material ideal for daily, long-term wear.",
+      "10KSolidGold": "All gold pieces are made with 10K Solid Gold. It's more durable and scratch-resistant than 14k solid gold, making it ideal for everyday wear.",
+      "GoldVermeil": "Crafted with 92% recycled sterling silver and a thick gold layer, combines sustainability, durability, and style. Tarnish-resistant and hypoallergenic, it’s perfect for everyday wear, offering the look of gold at an affordable price.",
+      "Gemstones": "We use an array of high-quality, precious and semi-precious gemstones selected for their beauty and longevity."
+    },
+    "variants": [
+      {
+        "id": "v001a",
+        "color": "Diamond",
+        "size": ["6", "7", "8", "9"],
+        "priceAdjustment": 0,
+        "imageUrl": "/img/p001_white.jpg"
+      },
+      {
+        "id": "v001b",
+        "color": "Tourmaline/Citrine",
+        "size": ["6", "7", "8", "9"],
+        "priceAdjustment": 20.00,
+        "imageUrl": "/img/p001_tourmaline.jpg"
+      }
+    ]
+  },
+  {
+    "id": "p002",
+    "name": "Melt My Heart Earrings",
+    "category": "Earrings",
+    "subCategory": "Heart Collection",
+    "description": "Elegant sterling silver drop earrings from the Heart Collection, featuring a delicate diamond-shaped heart detail. Designed to catch the light beautifully and add a romantic touch to any look.",
+    "price": 149.99,
+    "rating": 4.8,
+    "tags": ["heart", "earrings", "statement", "lightweight"],
+    "aboutMaterials": {
+      "925SterlingSilver": "All silver pieces are made with 925 sterling silver, Aura's signature material and the industry standard in the United States and most world markets. Made of 92.5% pure silver, it’s a highly durable material ideal for daily, long-term wear.",
+      "10KSolidGold": "All gold pieces are made with 10K Solid Gold. It's more durable and scratch-resistant than 14k solid gold, making it ideal for everyday wear.",
+      "GoldVermeil": "Crafted with 92% recycled sterling silver and a thick gold layer, combines sustainability, durability, and style. Tarnish-resistant and hypoallergenic, it’s perfect for everyday wear, offering the look of gold at an affordable price.",
+      "Gemstones": "We use an array of high-quality, precious and semi-precious gemstones selected for their beauty and longevity."
+    },
+    "variants": [
+      {
+        "id": "v002a",
+        "color": "Baby Pink",
+        "priceAdjustment": 0,
+        "imageUrl": "/img/p002_baby_pink.jpg"
+      },
+      {
+        "id": "v002b",
+        "color": "Deep Pink",
+        "priceAdjustment": 15.00,
+        "imageUrl": "/img/p002_deep_pink.jpg"
+      },
+      {
+        "id": "v002c",
+        "color": "Red",
+        "priceAdjustment": 5.00,
+        "imageUrl": "/img/p002_red.jpg"
+      },
+      {
+        "id": "v002d",
+        "color": "Light Blue",
+        "priceAdjustment": 20.00,
+        "imageUrl": "/img/p002_light_blue.jpg"
+      }
+    ]
+  },
+  {
+    "id": "p003",
+    "name": "Elixir Heart Necklace",
+    "category": "Necklaces",
+    "subCategory": "Heart Collection",
+    "description": "A unique sterling silver necklace from the Heart Collection featuring an irregular, organic heart shape. Available in a minimalist plain silver version or with a subtle crystal accent for added sparkle.",
+    "price": 219.99,
+    "rating": 4.7,
+    "tags": ["heart", "necklace", "statement", "luxury"],
+    "aboutMaterials": {
+      "925SterlingSilver": "All silver pieces are made with 925 sterling silver, Aura's signature material and the industry standard in the United States and most world markets. Made of 92.5% pure silver, it’s a highly durable material ideal for daily, long-term wear.",
+      "10KSolidGold": "All gold pieces are made with 10K Solid Gold. It's more durable and scratch-resistant than 14k solid gold, making it ideal for everyday wear.",
+      "GoldVermeil": "Crafted with 92% recycled sterling silver and a thick gold layer, combines sustainability, durability, and style. Tarnish-resistant and hypoallergenic, it’s perfect for everyday wear, offering the look of gold at an affordable price.",
+      "Gemstones": "We use an array of high-quality, precious and semi-precious gemstones selected for their beauty and longevity."
+    },
+    "variants": [
+      {
+        "id": "v003a",
+        "color": "Silver",
+        "size": ["16\"", "18\"", "20\""],
+        "priceAdjustment": 0,
+        "imageUrl": "/img/p003_clear.jpg"
+      },
+      {
+        "id": "v003b",
+        "color": "Baby Pink",
+        "size": ["16\"", "18\"", "20\""],
+        "priceAdjustment": 25.00,
+        "imageUrl": "/img/p003_baby_pink.jpg"
+      }
+    ]
+  },
+  {
+    "id": "p004",
+    "name": "Linework Bangle",
+    "category": "Bracelets",
+    "subCategory": "Essentials Collection",
+    "description": "A minimalist sterling silver/gold bracelet with a fluid form symbolizing balance and harmony. Perfect as a standalone piece or layered with others.",
+    "price": 129.99,
+    "rating": 4.4,
+    "tags": ["essentials", "bracelet", "minimal", "everyday", "unisex"],
+    "aboutMaterials": {
+      "925SterlingSilver": "All silver pieces are made with 925 sterling silver, Aura's signature material and the industry standard in the United States and most world markets. Made of 92.5% pure silver, it’s a highly durable material ideal for daily, long-term wear.",
+      "10KSolidGold": "All gold pieces are made with 10K Solid Gold. It's more durable and scratch-resistant than 14k solid gold, making it ideal for everyday wear.",
+      "GoldVermeil": "Crafted with 92% recycled sterling silver and a thick gold layer, combines sustainability, durability, and style. Tarnish-resistant and hypoallergenic, it’s perfect for everyday wear, offering the look of gold at an affordable price.",
+      "Gemstones": "We use an array of high-quality, precious and semi-precious gemstones selected for their beauty and longevity."
+    },
+    "variants": [
+      {
+        "id": "v004a",
+        "color": "Silver",
+        "size": ["8\"", "8.5\"", "9\""],
+        "priceAdjustment": 0,
+        "imageUrl": "/img/p004_silver.jpg"
+      },
+      {
+        "id": "v004b",
+        "color": "Gold",
+        "size": ["8\"", "8.5\"", "9\""],
+        "priceAdjustment": 10.00,
+        "imageUrl": "/img/p004_gold.jpg"
+      }
+    ]
+  },
+  {
+    "id": "p005",
+    "name": "Bow Earrings",
+    "category": "Earrings",
+    "subCategory": "Essentials Collection",
+    "description": "Minimalist sterling silver bow earrings designed for everyday elegance. Subtle, timeless, and easy to pair with any outfit.",
+    "price": 89.99,
+    "rating": 4.3,
+    "tags": ["essentials", "earrings", "minimal", "everyday", "unisex"],
+    "aboutMaterials": {
+      "925SterlingSilver": "All silver pieces are made with 925 sterling silver, Aura's signature material and the industry standard in the United States and most world markets. Made of 92.5% pure silver, it’s a highly durable material ideal for daily, long-term wear.",
+      "10KSolidGold": "All gold pieces are made with 10K Solid Gold. It's more durable and scratch-resistant than 14k solid gold, making it ideal for everyday wear.",
+      "GoldVermeil": "Crafted with 92% recycled sterling silver and a thick gold layer, combines sustainability, durability, and style. Tarnish-resistant and hypoallergenic, it’s perfect for everyday wear, offering the look of gold at an affordable price.",
+      "Gemstones": "We use an array of high-quality, precious and semi-precious gemstones selected for their beauty and longevity."
+    },
+    "variants": [
+      {
+        "id": "v005a",
+        "color": "Silver",
+        "priceAdjustment": 0,
+        "imageUrl": "/img/p005_bow.jpg"
+      }
+    ]
+  },
+  {
+    "id": "p006",
+    "name": "Ocean Earrings",
+    "category": "Earrings",
+    "subCategory": "Ocean Collection",
+    "description": "Modern sterling silver earrings with a flowing curve inspired by ocean tides. Crafted for a sleek and elegant look.",
+    "price": 159.99,
+    "rating": 4.5,
+    "tags": ["ocean", "earrings", "modern", "minimalist"],
+    "aboutMaterials": {
+      "925SterlingSilver": "All silver pieces are made with 925 sterling silver, Aura's signature material and the industry standard in the United States and most world markets. Made of 92.5% pure silver, it’s a highly durable material ideal for daily, long-term wear.",
+      "10KSolidGold": "All gold pieces are made with 10K Solid Gold. It's more durable and scratch-resistant than 14k solid gold, making it ideal for everyday wear.",
+      "GoldVermeil": "Crafted with 92% recycled sterling silver and a thick gold layer, combines sustainability, durability, and style. Tarnish-resistant and hypoallergenic, it’s perfect for everyday wear, offering the look of gold at an affordable price.",
+      "Gemstones": "We use an array of high-quality, precious and semi-precious gemstones selected for their beauty and longevity."
+    },
+    "variants": [
+      {
+        "id": "v006a",
+        "color": "Silver",
+        "priceAdjustment": 0,
+        "imageUrl": "/img/p006_plain.jpg"
+      }
+    ]
+  },
+  {
+    "id": "p007",
+    "name": "Wave Necklace",
+    "category": "Necklaces",
+    "subCategory": "Ocean Collection",
+    "description": "A delicate sterling silver necklace from the Ocean Collection, with a subtle, minimalist form. Available with a small luminous stone or a clean plain silver version.",
+    "price": 179.99,
+    "rating": 4.7,
+    "tags": ["ocean", "necklace", "minimalist", "gemstone"],
+    "aboutMaterials": {
+      "925SterlingSilver": "All silver pieces are made with 925 sterling silver, Aura's signature material and the industry standard in the United States and most world markets. Made of 92.5% pure silver, it’s a highly durable material ideal for daily, long-term wear.",
+      "10KSolidGold": "All gold pieces are made with 10K Solid Gold. It's more durable and scratch-resistant than 14k solid gold, making it ideal for everyday wear.",
+      "GoldVermeil": "Crafted with 92% recycled sterling silver and a thick gold layer, combines sustainability, durability, and style. Tarnish-resistant and hypoallergenic, it’s perfect for everyday wear, offering the look of gold at an affordable price.",
+      "Gemstones": "We use an array of high-quality, precious and semi-precious gemstones selected for their beauty and longevity."
+    },
+    "variants": [
+      {
+        "id": "v007a",
+        "color": "Silver",
+        "size": ["16\"", "18\"", "20\""],
+        "priceAdjustment": 0,
+        "imageUrl": "/img/p007_clear.jpg"
+      },
+      {
+        "id": "v007b",
+        "color": "Moonstone",
+        "size": ["16\"", "18\"", "20\""],
+        "priceAdjustment": 10.00,
+        "imageUrl": "/img/p007_moonstone.jpg"
+      }
+    ]
+  },
+  {
+    "id": "p008",
+    "name": "Modern Bangle",
+    "category": "Bracelets",
+    "subCategory": "Modern Collection",
+    "description": "A modern sterling silver bracelet with an irregular, sculptural shape inspired by contemporary design. Bold yet refined, it stands out as a statement piece while maintaining a clean, minimalist aesthetic.",
+    "price": 199.99,
+    "rating": 4.6,
+    "tags": ["bracelet", "modern", "statement"],
+    "aboutMaterials": {
+      "925SterlingSilver": "All silver pieces are made with 925 sterling silver, Aura's signature material and the industry standard in the United States and most world markets. Made of 92.5% pure silver, it’s a highly durable material ideal for daily, long-term wear.",
+      "10KSolidGold": "All gold pieces are made with 10K Solid Gold. It's more durable and scratch-resistant than 14k solid gold, making it ideal for everyday wear.",
+      "GoldVermeil": "Crafted with 92% recycled sterling silver and a thick gold layer, combines sustainability, durability, and style. Tarnish-resistant and hypoallergenic, it’s perfect for everyday wear, offering the look of gold at an affordable price.",
+      "Gemstones": "We use an array of high-quality, precious and semi-precious gemstones selected for their beauty and longevity."
+    },
+    "variants": [
+      {
+        "id": "v008a",
+        "color": "Silver",
+        "size": ["8\"", "8.5\"", "9\""],
+        "priceAdjustment": 0,
+        "imageUrl": "/img/p008_polish.jpg"
+      }
+    ]
+  },
+  {
+    "id": "p009",
+    "name": "Flux Form Ring",
+    "category": "Rings",
+    "subCategory": "Modern Collection",
+    "description": "A contemporary ring with an irregular, fluid shape inspired by movement and modern art. Crafted from high-quality metal and available in sterling silver or gold-plated versions, it expresses individuality through bold yet refined form.",
+    "price": 209.99,
+    "rating": 4.9,
+    "tags": ["modern", "ring", "statement"],
+    "aboutMaterials": {
+      "925SterlingSilver": "All silver pieces are made with 925 sterling silver, Aura's signature material and the industry standard in the United States and most world markets. Made of 92.5% pure silver, it’s a highly durable material ideal for daily, long-term wear.",
+      "10KSolidGold": "All gold pieces are made with 10K Solid Gold. It's more durable and scratch-resistant than 14k solid gold, making it ideal for everyday wear.",
+      "GoldVermeil": "Crafted with 92% recycled sterling silver and a thick gold layer, combines sustainability, durability, and style. Tarnish-resistant and hypoallergenic, it’s perfect for everyday wear, offering the look of gold at an affordable price.",
+      "Gemstones": "We use an array of high-quality, precious and semi-precious gemstones selected for their beauty and longevity."
+    },
+    "variants": [
+      {
+        "id": "v009a",
+        "color": "Silver",
+        "size": ["6", "7", "8", "9"],
+        "priceAdjustment": 0,
+        "imageUrl": "/img/p009_silver.jpg"
+      },
+      {
+        "id": "v009b",
+        "color": "Gold",
+        "size": ["6", "7", "8", "9"],
+        "priceAdjustment": 30.00,
+        "imageUrl": "/img/p009_gold.jpg"
+      }
+    ]
+  },
+  {
+    "id": "p010",
+    "name": "Splash Necklace",
+    "category": "Necklaces",
+    "subCategory": "Modern Collection",
+    "description": "A striking sterling silver necklace from the Modern Collection, featuring a unique, flowing design inspired by splashes of water. Set with a luminous aquamarine, it adds a fresh, contemporary sparkle.",
+    "price": 119.99,
+    "rating": 4.4,
+    "tags": ["modern", "necklace", "statement", "aquamarine"],
+    "aboutMaterials": {
+      "925SterlingSilver": "All silver pieces are made with 925 sterling silver, Aura's signature material and the industry standard in the United States and most world markets. Made of 92.5% pure silver, it’s a highly durable material ideal for daily, long-term wear.",
+      "10KSolidGold": "All gold pieces are made with 10K Solid Gold. It's more durable and scratch-resistant than 14k solid gold, making it ideal for everyday wear.",
+      "GoldVermeil": "Crafted with 92% recycled sterling silver and a thick gold layer, combines sustainability, durability, and style. Tarnish-resistant and hypoallergenic, it’s perfect for everyday wear, offering the look of gold at an affordable price.",
+      "Gemstones": "We use an array of high-quality, precious and semi-precious gemstones selected for their beauty and longevity."
+    },
+    "variants": [
+      {
+        "id": "v010a",
+        "color": "Aquamarine",
+        "size": ["16\"", "18\"", "20\""],
+        "priceAdjustment": 0,
+        "imageUrl": "/img/p010_aquamarine.jpg"
+      }
+    ]
+  },
+  {
+    "id": "p011",
+    "name": "The \"Engagement\" Ring",
+    "category": "Rings",
+    "subCategory": "Heart Collection",
+    "description": "A bold sterling silver engagement ring from the Heart Collection, featuring a prominent heart-shaped design. Available with a sparkling tourmaline or citrine, it makes a striking statement of love and commitment.",
+    "price": 179.99,
+    "rating": 4.7,
+    "tags": ["heart", "ring", "engagement", "statement"],
+    "aboutMaterials": {
+      "925SterlingSilver": "All silver pieces are made with 925 sterling silver, Aura's signature material and the industry standard in the United States and most world markets. Made of 92.5% pure silver, it’s a highly durable material ideal for daily, long-term wear.",
+      "10KSolidGold": "All gold pieces are made with 10K Solid Gold. It's more durable and scratch-resistant than 14k solid gold, making it ideal for everyday wear.",
+      "GoldVermeil": "Crafted with 92% recycled sterling silver and a thick gold layer, combines sustainability, durability, and style. Tarnish-resistant and hypoallergenic, it’s perfect for everyday wear, offering the look of gold at an affordable price.",
+      "Gemstones": "We use an array of high-quality, precious and semi-precious gemstones selected for their beauty and longevity."
+    },
+    "variants": [
+      {
+        "id": "v011a",
+        "color": "Tourmaline",
+        "size": ["6", "7", "8", "9"],
+        "priceAdjustment": 0,
+        "imageUrl": "/img/p011_tourmaline.jpg"
+      },
+      {
+        "id": "v011b",
+        "color": "Citrine",
+        "size": ["6", "7", "8", "9"],
+        "priceAdjustment": 10.00,
+        "imageUrl": "/img/p011_citrine.jpg"
+      },
+      {
+        "id": "v011c",
+        "color": "Blue Topaz",
+        "size": ["6", "7", "8", "9"],
+        "priceAdjustment": 20.00,
+        "imageUrl": "/img/p011_blue_topaz.jpg"
+      },
+      {
+        "id": "v011d",
+        "color": "Diamond",
+        "size": ["6", "7", "8", "9"],
+        "priceAdjustment": 10.00,
+        "imageUrl": "/img/p011_diamond.jpg"
+      }
+    ]
+  },
+  {
+    "id": "p012",
+    "name": "Bracelet Chain",
+    "category": "Bracelets",
+    "subCategory": "Essentials Collection",
+    "description": "A minimalist sterling silver chain bracelet from the Essentials Collection. Simple, versatile, and perfect for everyday wear or layering with other pieces.",
+    "price": 119.99,
+    "rating": 4.4,
+    "tags": ["essentials", "bracelet", "minimal", "everyday", "unisex"],
+    "aboutMaterials": {
+      "925SterlingSilver": "All silver pieces are made with 925 sterling silver, Aura's signature material and the industry standard in the United States and most world markets. Made of 92.5% pure silver, it’s a highly durable material ideal for daily, long-term wear.",
+      "10KSolidGold": "All gold pieces are made with 10K Solid Gold. It's more durable and scratch-resistant than 14k solid gold, making it ideal for everyday wear.",
+      "GoldVermeil": "Crafted with 92% recycled sterling silver and a thick gold layer, combines sustainability, durability, and style. Tarnish-resistant and hypoallergenic, it’s perfect for everyday wear, offering the look of gold at an affordable price.",
+      "Gemstones": "We use an array of high-quality, precious and semi-precious gemstones selected for their beauty and longevity."
+    },
+    "variants": [
+      {
+        "id": "v012a",
+        "color": "Silver",
+        "size": ["8\"", "8.5\"", "9\""],
+        "priceAdjustment": 0,
+        "imageUrl": "/img/p012_clear.jpg"
+      }
+    ]
+  },
+  {
+    "id": "p013",
+    "name": "Heart Ring",
+    "category": "Rings",
+    "subCategory": "Heart Collection",
+    "description": "Turn simplicity into a statement with the Heart Ring. Its sleek, modern take on the classic heart shape makes it more than just jewelry - it's an elegant expression of individuality.",
+    "price": 109.99,
+    "rating": 3,
+    "tags": ["heart", "ring", "minimal", "everyday"],
+    "aboutMaterials": {
+      "925SterlingSilver": "All silver pieces are made with 925 sterling silver, Aura's signature material and the industry standard in the United States and most world markets. Made of 92.5% pure silver, it’s a highly durable material ideal for daily, long-term wear.",
+      "10KSolidGold": "All gold pieces are made with 10K Solid Gold. It's more durable and scratch-resistant than 14k solid gold, making it ideal for everyday wear.",
+      "GoldVermeil": "Crafted with 92% recycled sterling silver and a thick gold layer, combines sustainability, durability, and style. Tarnish-resistant and hypoallergenic, it’s perfect for everyday wear, offering the look of gold at an affordable price.",
+      "Gemstones": "We use an array of high-quality, precious and semi-precious gemstones selected for their beauty and longevity."
+    },
+    "variants": [
+      {
+        "id": "v013a",
+        "color": "Silver",
+        "size": ["6", "7", "8", "9"],
+        "priceAdjustment": 0,
+        "imageUrl": "/img/p013_silver.jpg"
+      }
+    ]
+  },
+  {
+    "id": "p014",
+    "name": "Goop Earrings",
+    "category": "Earrings",
+    "subCategory": "Essentials Collection",
+    "description": "The Silver Goop Earring is where fluid artistry meets everyday sophistication. Whether you're elevating a casual outfit or making a striking statement, this versatile piece does it all.",
+    "price": 150.99,
+    "rating": 5,
+    "tags": ["essentials", "earrings", "everyday"],
+    "aboutMaterials": {
+      "925SterlingSilver": "All silver pieces are made with 925 sterling silver, Aura's signature material and the industry standard in the United States and most world markets. Made of 92.5% pure silver, it’s a highly durable material ideal for daily, long-term wear.",
+      "10KSolidGold": "All gold pieces are made with 10K Solid Gold. It's more durable and scratch-resistant than 14k solid gold, making it ideal for everyday wear.",
+      "GoldVermeil": "Crafted with 92% recycled sterling silver and a thick gold layer, combines sustainability, durability, and style. Tarnish-resistant and hypoallergenic, it’s perfect for everyday wear, offering the look of gold at an affordable price.",
+      "Gemstones": "We use an array of high-quality, precious and semi-precious gemstones selected for their beauty and longevity."
+    },
+    "variants": [
+      {
+        "id": "v014a",
+        "color": "Silver",
+        "priceAdjustment": 0,
+        "imageUrl": "/img/p014_silver.jpg"
+      }
+    ]
+  },
+  {
+    "id": "p015",
+    "name": "Drop Necklace",
+    "category": "Necklaces",
+    "subCategory": "Ocean Collection",
+    "description": "Capture the essence of a single morning dewdrop with the Drop Necklace. Part of our Ocean Collection, this piece features a fluid, organic silhouette that hangs gracefully, mirroring the serene beauty of water in motion.",
+    "price": 130.99,
+    "rating": 4,
+    "tags": ["ocean", "necklace", "essentials", "everyday"],
+    "aboutMaterials": {
+      "925SterlingSilver": "All silver pieces are made with 925 sterling silver, Aura's signature material and the industry standard in the United States and most world markets. Made of 92.5% pure silver, it’s a highly durable material ideal for daily, long-term wear.",
+      "10KSolidGold": "All gold pieces are made with 10K Solid Gold. It's more durable and scratch-resistant than 14k solid gold, making it ideal for everyday wear.",
+      "GoldVermeil": "Crafted with 92% recycled sterling silver and a thick gold layer, combines sustainability, durability, and style. Tarnish-resistant and hypoallergenic, it’s perfect for everyday wear, offering the look of gold at an affordable price.",
+      "Gemstones": "We use an array of high-quality, precious and semi-precious gemstones selected for their beauty and longevity."
+    },
+    "variants": [
+      {
+        "id": "v015a",
+        "color": "Silver",
+        "size": ["16\"", "18\"", "20\""],
+        "priceAdjustment": 0,
+        "imageUrl": "/img/p015_silver.jpg"
+      }
+    ]
+  },
+  {
+    "id": "p016",
+    "name": "Thron Bangle",
+    "category": "Bracelets",
+    "subCategory": "Essentials Collection",
+    "description": "Delicate yet sculptural, the Thorn Bangle is a thin stacking piece designed for effortless everyday wear. Its fluid silhouette and mirror-polished finish bring subtle shine to any look - whether worn solo or layered in your stack.",
+    "price": 180.99,
+    "rating": 5,
+    "tags": ["essentials", "bracelet", "everyday", "statement"],
+    "aboutMaterials": {
+      "925SterlingSilver": "All silver pieces are made with 925 sterling silver, Aura's signature material and the industry standard in the United States and most world markets. Made of 92.5% pure silver, it’s a highly durable material ideal for daily, long-term wear.",
+      "10KSolidGold": "All gold pieces are made with 10K Solid Gold. It's more durable and scratch-resistant than 14k solid gold, making it ideal for everyday wear.",
+      "GoldVermeil": "Crafted with 92% recycled sterling silver and a thick gold layer, combines sustainability, durability, and style. Tarnish-resistant and hypoallergenic, it’s perfect for everyday wear, offering the look of gold at an affordable price.",
+      "Gemstones": "We use an array of high-quality, precious and semi-precious gemstones selected for their beauty and longevity."
+    },
+    "variants": [
+      {
+        "id": "v016a",
+        "color": "Silver",
+        "size": ["8\"", "8.5\"", "9\""],
+        "priceAdjustment": 0,
+        "imageUrl": "/img/p016_silver.jpg"
+      },
+      {
+        "id": "v016b",
+        "color": "Gold",
+        "size": ["8\"", "8.5\"", "9\""],
+        "priceAdjustment": 20.00,
+        "imageUrl": "/img/p016_gold.jpg"
+      }
+    ]
+  },
+  {
+    "id": "p017",
+    "name": "Terra Ring",
+    "category": "Rings",
+    "subCategory": "Modern Collection",
+    "description": "Grounded in strength and inspired by the raw textures of the earth, The Terra Ring is a centerpiece of our Modern Collection. Whether worn in polished silver or radiant gold, it serves as a powerful statement of stability and timeless design.",
+    "price": 160.99,
+    "rating": 4.7,
+    "tags": ["modern", "ring", "statement"],
+    "aboutMaterials": {
+      "925SterlingSilver": "All silver pieces are made with 925 sterling silver, Aura's signature material and the industry standard in the United States and most world markets. Made of 92.5% pure silver, it’s a highly durable material ideal for daily, long-term wear.",
+      "10KSolidGold": "All gold pieces are made with 10K Solid Gold. It's more durable and scratch-resistant than 14k solid gold, making it ideal for everyday wear.",
+      "GoldVermeil": "Crafted with 92% recycled sterling silver and a thick gold layer, combines sustainability, durability, and style. Tarnish-resistant and hypoallergenic, it’s perfect for everyday wear, offering the look of gold at an affordable price.",
+      "Gemstones": "We use an array of high-quality, precious and semi-precious gemstones selected for their beauty and longevity."
+    },
+    "variants": [
+      {
+        "id": "v017a",
+        "color": "Silver",
+        "size": ["6", "7", "8", "9"],
+        "priceAdjustment": 0,
+        "imageUrl": "/img/p017_silver.jpg"
+      },
+      {
+        "id": "v017b",
+        "color": "Gold",
+        "size": ["6", "7", "8", "9"],
+        "priceAdjustment": 10.00,
+        "imageUrl": "/img/p017_gold.jpg"
+      }
+    ]
+  },
+  {
+    "id": "p018",
+    "name": "Heart In Question Earrings",
+    "category": "Earrings",
+    "subCategory": "Heart Collection",
+    "description": "Reimagine romance with the Heart In Question Earrings. A centerpiece of our Heart Collection, these earrings feature an artistic, open-form heart silhouette that balances playful curiosity with sophisticated elegance.",
+    "price": 169.99,
+    "rating": 4,
+    "tags": ["heart", "earrings", "statement", "lightweight"],
+    "aboutMaterials": {
+      "925SterlingSilver": "All silver pieces are made with 925 sterling silver, Aura's signature material and the industry standard in the United States and most world markets. Made of 92.5% pure silver, it’s a highly durable material ideal for daily, long-term wear.",
+      "10KSolidGold": "All gold pieces are made with 10K Solid Gold. It's more durable and scratch-resistant than 14k solid gold, making it ideal for everyday wear.",
+      "GoldVermeil": "Crafted with 92% recycled sterling silver and a thick gold layer, combines sustainability, durability, and style. Tarnish-resistant and hypoallergenic, it’s perfect for everyday wear, offering the look of gold at an affordable price.",
+      "Gemstones": "We use an array of high-quality, precious and semi-precious gemstones selected for their beauty and longevity."
+    },
+    "variants": [
+      {
+        "id": "v018a",
+        "color": "Baby Pink",
+        "priceAdjustment": 0,
+        "imageUrl": "/img/p018_baby_pink.jpg"
+      },
+      {
+        "id": "v018b",
+        "color": "Deep Pink",
+        "priceAdjustment": 15.00,
+        "imageUrl": "/img/p018_deep_pink.jpg"
+      },
+      {
+        "id": "v018c",
+        "color": "Red",
+        "priceAdjustment": 5.00,
+        "imageUrl": "/img/p018_red.jpg"
+      },
+      {
+        "id": "v018d",
+        "color": "Light Blue",
+        "priceAdjustment": 20.00,
+        "imageUrl": "/img/p018_blue.jpg"
+      }
+    ]
+  }
+]

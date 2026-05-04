@@ -69,17 +69,29 @@ const useProductFiltering = (products) => {
   const filteredProducts = useMemo(() => {
     if (!products || !Array.isArray(products)) return [];
 
+    // map category names (UI) to database IDs (backend)
+    const categoryMap = {
+      "Rings": 1,
+      "Earrings": 2,
+      "Necklaces": 3,
+      "Bracelets": 4
+    };
+
     return products.filter(product => {
       const price = Number(product.price) || 0;
       
-      // Check price range
+      // check price range
       if (price < filters.minPrice || price > filters.maxPrice) return false;
 
-      // Note: your new DB uses 'category_id', but frontend filters use 'categories' strings. 
-      // We will skip strict category filtering for now until we map IDs to Names
-      // if (filters.categories.length > 0 && !filters.categories.includes(product.category_id)) return false;
+      // filter categories using mapped IDs (UI → DB normalization)
+      if (filters.categories.length > 0) {
+        const mappedCategories = filters.categories.map(c => categoryMap[c]);
 
-      // Check search query against name
+        // ensure product belongs to selected DB category IDs
+        if (!mappedCategories.includes(product.category_id)) return false;
+      }
+
+      // check search query against name
       if (filters.searchQuery) {
         const query = filters.searchQuery.toLowerCase();
         const matchesName = product.name?.toLowerCase().includes(query);

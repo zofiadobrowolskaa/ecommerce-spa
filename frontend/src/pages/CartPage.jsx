@@ -55,26 +55,44 @@ const CartPage = () => {
   const isDiscountApplied = discount.percentage > 0;
   const finalTotal = cartTotal - discountValue;
 
-  // merge cart items with full product info (no variants yet)
+  // merge cart items with full product and variant data
   const cartItemsData = cart.map(item => {
-    // safely match numeric/string IDs
-    const product = products.find(p => p.id == item.productId);
-
+    // safely match IDs (handle string/number mismatch)
+    const product = products.find(p => String(p.id) === String(item.productId));
     if (!product) return null;
 
-    // ensure numerical operations
-    const unitPrice = Number(product.price) || 0;
+    // find selected variant (fallback to empty object if missing)
+    const variant =
+      product.variants?.find(v => String(v.id) === String(item.variantId)) || {};
+
+    // calculate unit price (base + variant adjustment)
+    const unitPrice =
+      (Number(product.price) || 0) +
+      (Number(variant.priceAdjustment) || 0);
 
     return {
       ...item,
       productName: product.name,
-      variantColor: 'Default', // fallback for now
+
+      // use variant color or fallback
+      variantColor: variant.color || 'Default',
+
       itemSize: item.size,
-      imageUrl: product.image_url || '/img/placeholder.jpg',
+
+      // select image: variant > gallery > fallback
+      imageUrl:
+        variant.imageUrl ||
+        product.gallery?.[0] ||
+        '/img/placeholder.jpg',
+
       unitPrice,
+
+      // calculate total price per item
       totalPrice: unitPrice * item.quantity,
     };
-  }).filter(item => item !== null); // remove null entries
+  })
+  // remove items with missing product reference
+  .filter(item => item !== null);
 
   if (cartItemsData.length === 0) {
     return (
@@ -95,7 +113,7 @@ const CartPage = () => {
         <div className="cart-items">
           {cartItemsData.map(item => (
             <div key={`${item.productId}-${item.variantId}-${item.itemSize}`} className="cart-item">
-              <Link to={`/products/${item.productId}/base`}>
+              <Link to={`/products/${item.productId}/${item.variantId}`}>
                 <img src={item.imageUrl} alt={item.productName} className="item-image" />
               </Link>
               <div className="item-details">

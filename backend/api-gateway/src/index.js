@@ -43,7 +43,8 @@ const handleError = (res, err, defaultError = 'gateway_error') => {
 // hybrid product creation saga with compensation
 // applied input validation using zod
 app.post('/api/products', validate(productSchema), async (req, res) => {
-  const { name, sku, price, category_id, long_description, specs } = req.body;
+  // extended payload: includes variants, materials, gallery
+  const { name, sku, price, category_id, long_description, specs, variants, aboutMaterials, gallery } = req.body;
 
   // will store ID of product created in postgres (needed for step 2 and rollback)
   let createdProductId = null;
@@ -67,9 +68,11 @@ app.post('/api/products', validate(productSchema), async (req, res) => {
     // step 2: save product details to mongo (catalog service)
     await axios.post(`${CATALOG_SERVICE}/internal/product-details`, {
       productId: createdProductId, 
-      longDescription: long_description,
-      long_description: long_description, 
-      specs
+      longDescription: long_description || req.body.description, // fallback support for legacy field
+      specs,
+      variants, // store variants in catalog
+      aboutMaterials, // store additional material info
+      gallery // store product gallery
     });
 
     // success: both operations completed
@@ -104,10 +107,42 @@ app.post('/api/products', validate(productSchema), async (req, res) => {
   }
 });
 
-// dynamic catalog routing
-app.get('/api/products', (req, res) => {
-  const params = new URLSearchParams(req.query).toString();
-  axios.get(`${INVENTORY_SERVICE}/products?${params}`).then(r => res.json(r.data)).catch(e => handleError(res, e));
+// proxy product list: fetch base products from inventory and enrich with catalog details
+app.get('/api/products', async (req, res) => {
+  try {
+    const params = new URLSearchParams(req.query).toString();
+
+    // fetch base product list from inventory service (Postgres)
+    const invRes = await axios.get(`${INVENTORY_SERVICE}/products?${params}`);
+    const baseProducts = invRes.data;
+
+    // normalize response shape (array or paginated object)
+    const isArray = Array.isArray(baseProducts);
+    const items = isArray ? baseProducts : (baseProducts.items || baseProducts.data || []);
+
+    // enrich each product with catalog data (Mongo)
+    const mergedItems = await Promise.all(items.map(async (p) => {
+      const catRes = await axios.get(`${CATALOG_SERVICE}/product-details/${p.id}`).catch(() => null);
+      const details = catRes?.data || {};
+
+      return {
+        ...p,
+        variants: details.variants || [], // include variants in list response
+        gallery: details.gallery || []
+      };
+    }));
+
+    // preserve original response format (array or paginated)
+    if (isArray) {
+      res.json(mergedItems);
+    } else {
+      if (baseProducts.items) baseProducts.items = mergedItems;
+      else if (baseProducts.data) baseProducts.data = mergedItems;
+      res.json(baseProducts);
+    }
+  } catch (e) {
+    handleError(res, e);
+  }
 });
 
 // SERVER-SIDE CART
@@ -139,9 +174,7 @@ app.post('/api/cart/:userId/sync', validate(cartSyncSchema), async (req, res) =>
     await axios.post(`${INVENTORY_SERVICE}/cart/${req.params.userId}/sync`, { items });
     
     // save cart draft in mongo for analytics (fire and forget, should not break main flow)
-    axios
-      .post(`${CATALOG_SERVICE}/cart-draft/${req.params.userId}/add`, { items })
-      .catch(() => { /* intentionally ignored */ });
+    axios.post(`${CATALOG_SERVICE}/cart-draft/${req.params.userId}/add`, { items }).catch(() => {});
     
     res.sendStatus(200);
   } catch (e) {
@@ -184,63 +217,59 @@ app.post('/api/checkout', validate(checkoutSchema), async (req, res) => {
 // cancel order and return stock
 app.post('/api/orders/:orderId/cancel', async (req, res) => {
   // delegate cancellation to inventory (restores stock + updates order state)
-  axios
-    .post(`${INVENTORY_SERVICE}/orders/${req.params.orderId}/cancel`)
+  axios.post(`${INVENTORY_SERVICE}/orders/${req.params.orderId}/cancel`)
     .then(() => res.sendStatus(200))
     .catch(e => handleError(res, e));
 });
 
-// aggregate product data: postgres (base) + mongo (details)
+// aggregate product data: postgres (base data - inventory) + mongo (extended details - catalog)
 app.get('/api/products/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    // query internal microservices within docker network using exact service names from docker-compose.yml
     const inventoryUrl = `http://pg-service:3001/products/${id}`;
-    const catalogUrl = `http://mongo-service:3002/product-details/${id}`;
 
-    // fetch data in parallel for performance
-    const [invResponse, catResponse] = await Promise.all([
-      fetch(inventoryUrl),
-      fetch(catalogUrl).catch(() => null) // do not block if mongo fails
-    ]);
+    // fetch base product first (may resolve SKU → numeric ID)
+    const invResponse = await fetch(inventoryUrl);
 
-    // validate main record (postgres)
+    // handle inventory errors (source of truth)
     if (!invResponse.ok) {
       if (invResponse.status === 404) {
-        return res.status(404).json({ 
-          error: 'not_found', 
-          details: 'product not found in the inventory database.' 
-        });
+        return res.status(404).json({ error: 'not_found', details: 'product not found' });
       }
       throw new Error(`inventory service error: status ${invResponse.status}`);
     }
 
+    // extract numeric ID required by catalog service (Mongo)
     const inventoryData = await invResponse.json();
+    const numericId = inventoryData.id;
+
+    // use numeric ID for catalog lookup (Mongo uses PG-generated IDs)
+    const catalogUrl = `http://mongo-service:3002/product-details/${numericId}`;
+
+    // catalog is optional → fallback if unavailable
+    const catResponse = await fetch(catalogUrl).catch(() => null);
     let catalogData = {};
 
-    // get supplementary data (mongo)
     if (catResponse && catResponse.ok) {
       catalogData = await catResponse.json();
     }
 
-    // aggregate the final object
+    // merge base product with extended catalog fields
     const aggregatedProduct = {
       ...inventoryData,
       description: catalogData.longDescription || inventoryData.description || "",
       specs: catalogData.specs || {},
       gallery: catalogData.gallery || [],
-      reviews: catalogData.reviews || []
+      reviews: catalogData.reviews || [],
+      variants: catalogData.variants || [], // include variants from catalog
+      aboutMaterials: catalogData.aboutMaterials || {} // include material details
     };
 
     res.status(200).json(aggregatedProduct);
   } catch (error) {
-    // handle error directly to avoid server crash
     console.error(error);
-    res.status(500).json({ 
-      error: 'internal_server_error', 
-      details: 'an error occurred while aggregating product data.' 
-    });
+    res.status(500).json({ error: 'internal_server_error' });
   }
 });
 

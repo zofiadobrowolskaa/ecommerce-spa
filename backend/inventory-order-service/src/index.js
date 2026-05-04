@@ -29,12 +29,25 @@ app.get('/products', async (req, res) => {
 });
 
 // get single product by id for gateway aggregation
+// extended: supports lookup by SKU (string) or numeric ID
 app.get('/products/:id', async (req, res, next) => {
   try {
-    const product = await knex('products').where({ id: req.params.id }).first();
+    const { id } = req.params;
+    
+    // detect identifier type: SKU (string) vs numeric ID
+    let product;
+    if (isNaN(id)) {
+        // lookup by SKU (e.g. "p001")
+        product = await knex('products').where({ sku: id }).first();
+    } else {
+        // lookup by numeric ID
+        product = await knex('products').where({ id: id }).first();
+    }
+
     if (!product) {
       return res.status(404).json({ error: 'not_found' });
     }
+
     res.json(product);
   } catch (err) {
     next(err);
